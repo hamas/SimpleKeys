@@ -5,7 +5,7 @@ import 'black_key.dart';
 import 'white_key.dart';
 
 /// Container that renders piano keys and handles low-latency multi-touch pointer events
-/// with zero-allocation geometry caching and dynamic velocity estimation.
+/// with zero-allocation geometry caching, dynamic velocity estimation, and acoustic felt styling.
 class PianoKeyboard extends StatelessWidget {
   final KeyboardController controller;
 
@@ -135,6 +135,27 @@ class PianoKeyboard extends StatelessWidget {
                   ),
                 );
               }),
+
+              // Top Acoustic Terracotta Fallboard Felt Rail
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 6,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFC05A3E),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x66000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );

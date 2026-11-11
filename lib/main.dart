@@ -6,8 +6,10 @@ import 'presentation/screens/piano_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Fast boot: lock landscape and activate immersive fullscreen
+  // Allow portrait and landscape fluid rotation
   await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);

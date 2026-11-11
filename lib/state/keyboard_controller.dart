@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../core/audio/audio_engine.dart';
 import '../core/audio/sound_presets.dart';
+import '../core/constants/chord_detector.dart';
 import '../core/constants/piano_notes.dart';
 import '../models/key_note.dart';
 
@@ -45,6 +46,9 @@ class KeyboardController extends ChangeNotifier {
   int _baseOctave = 3;
   int get baseOctave => _baseOctave;
 
+  int _octaveSpan = 1; // 1 = Couch thumb mode (8 white keys), 2 = Wide mode (15 white keys)
+  int get octaveSpan => _octaveSpan;
+
   SoundBankType _soundPreset = SoundBankType.feltPiano;
   SoundBankType get soundPreset => _soundPreset;
 
@@ -61,6 +65,9 @@ class KeyboardController extends ChangeNotifier {
   /// Currently depressed MIDI notes (for visual glow / depressed state).
   final Set<int> _pressedMidiNotes = {};
   Set<int> get pressedMidiNotes => Set.unmodifiable(_pressedMidiNotes);
+
+  /// Real-time musical chord or interval detection.
+  String get activeChord => ChordDetector.detectChord(_pressedMidiNotes);
 
   /// Map of active pointer IDs to their currently triggered MIDI note number.
   final Map<int, int> _pointerToMidi = {};
@@ -79,8 +86,8 @@ class KeyboardController extends ChangeNotifier {
   void _refreshNotes() {
     final generated = PianoNotes.generateNotes(
       startOctave: _baseOctave,
-      octaveCount: 2,
-      includeEndingRoot: true, // e.g. C3 through C5 (25 keys: 15 white, 10 black)
+      octaveCount: _octaveSpan,
+      includeEndingRoot: true,
     );
     _layout = KeyboardLayout(allNotes: generated);
   }
@@ -90,6 +97,16 @@ class KeyboardController extends ChangeNotifier {
       notes: _layout.allNotes,
       preset: _soundPreset,
     );
+  }
+
+  /// Sets visible keyboard octave span (1 or 2 octaves).
+  void setOctaveSpan(int span) {
+    if (span != 1 && span != 2) return;
+    if (_octaveSpan == span) return;
+    _octaveSpan = span;
+    _refreshNotes();
+    _reloadSoundBank();
+    notifyListeners();
   }
 
   /// Shift visible octave up (max base octave 5).

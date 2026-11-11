@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:simplekeys/core/constants/chord_detector.dart';
 import 'package:simplekeys/core/constants/piano_notes.dart';
 import 'package:simplekeys/state/keyboard_controller.dart';
 
@@ -17,6 +18,19 @@ void main() {
       expect(blackNotes.length, 10); // 5 * 2
       expect(notes.first.label, 'C3');
       expect(notes.last.label, 'C5');
+    });
+
+    test('generateNotes generates 1 octave plus ending root C (13 keys total for portrait)', () {
+      final notes = PianoNotes.generateNotes(startOctave: 3, octaveCount: 1);
+      expect(notes.length, 13);
+
+      final whiteNotes = notes.where((n) => !n.isAccidental).toList();
+      final blackNotes = notes.where((n) => n.isAccidental).toList();
+
+      expect(whiteNotes.length, 8); // 7 + 1 ending C
+      expect(blackNotes.length, 5);
+      expect(notes.first.label, 'C3');
+      expect(notes.last.label, 'C4');
     });
 
     test('isInMagicScale filters out dissonant semitones (F and B in C Major Pentatonic)', () {
@@ -39,19 +53,33 @@ void main() {
     });
   });
 
+  group('ChordDetector', () {
+    test('detects single note, intervals, and triads accurately', () {
+      expect(ChordDetector.detectChord({}), 'Tap or slide keys');
+      expect(ChordDetector.detectChord({60}), 'C4'); // Middle C
+      expect(ChordDetector.detectChord({60, 67}), 'C + G • Perfect 5th');
+      expect(ChordDetector.detectChord({60, 64, 67}), 'C Major'); // C-E-G
+      expect(ChordDetector.detectChord({57, 60, 64}), 'A Minor'); // A-C-E
+    });
+  });
+
   group('KeyboardLayout Zero-Allocation Cache', () {
     test('Layout precomputes immutable white and black note lists and preceding indices', () {
       final controller = KeyboardController();
-      final layout = controller.layout;
+      // Default is 1 octave (portrait friendly)
+      expect(controller.layout.whiteNotes.length, 8);
+      expect(controller.layout.blackNotes.length, 5);
 
-      expect(layout.whiteNotes.length, 15);
-      expect(layout.blackNotes.length, 10);
-      expect(layout.blackToPrecedingWhiteIndex.length, 10);
+      // Switch to 2 octaves (wide landscape)
+      controller.setOctaveSpan(2);
+      expect(controller.layout.whiteNotes.length, 15);
+      expect(controller.layout.blackNotes.length, 10);
+      expect(controller.layout.blackToPrecedingWhiteIndex.length, 10);
 
       // Verify that C#3 (first black key) maps to C3 (white key index 0)
-      final cSharp3 = layout.blackNotes.first;
+      final cSharp3 = controller.layout.blackNotes.first;
       expect(cSharp3.name, 'C#');
-      expect(layout.blackToPrecedingWhiteIndex[cSharp3], 0);
+      expect(controller.layout.blackToPrecedingWhiteIndex[cSharp3], 0);
     });
   });
 
@@ -71,7 +99,7 @@ void main() {
       expect(controller.notes.first.label, 'C3');
     });
 
-    test('Pointer down, move, and up tracks pressed MIDI notes with velocity', () {
+    test('Pointer down, move, and up tracks pressed MIDI notes and updates active chord', () {
       final controller = KeyboardController();
       final note1 = controller.notes.first; // C3
       final note2 = controller.notes[2];    // D3
@@ -79,11 +107,13 @@ void main() {
       // Pointer 1 strikes C3 with velocity
       controller.handlePointerDown(1, note1, velocity: 0.85);
       expect(controller.pressedMidiNotes.contains(note1.midiNumber), isTrue);
+      expect(controller.activeChord, 'C3');
 
       // Pointer 2 strikes D3 simultaneously (multi-touch)
       controller.handlePointerDown(2, note2, velocity: 0.95);
       expect(controller.pressedMidiNotes.contains(note1.midiNumber), isTrue);
       expect(controller.pressedMidiNotes.contains(note2.midiNumber), isTrue);
+      expect(controller.activeChord, contains('Major 2nd'));
 
       // Pointer 1 lifts
       controller.handlePointerUp(1);
@@ -93,6 +123,7 @@ void main() {
       // Pointer 2 lifts
       controller.handlePointerUp(2);
       expect(controller.pressedMidiNotes.isEmpty, isTrue);
+      expect(controller.activeChord, 'Tap or slide keys');
     });
 
     test('Sustain pedal toggle updates mode', () {

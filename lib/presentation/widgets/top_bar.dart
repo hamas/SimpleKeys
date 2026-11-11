@@ -1,50 +1,302 @@
 import 'package:flutter/material.dart';
 import '../../core/audio/sound_presets.dart';
-import '../../core/theme/app_colors.dart';
 import '../../state/keyboard_controller.dart';
 
-/// Material 3 Expressive top control bar housing octave stepper, fluid preset switcher,
-/// sustain pedal toggle, and radiant magic-scale toggle.
+/// Authentic Material 3 Expressive control deck with responsive portrait and landscape layouts.
 class TopBar extends StatelessWidget {
   final KeyboardController controller;
+  final bool isPortrait;
 
   const TopBar({
     super.key,
     required this.controller,
+    this.isPortrait = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(10, 6, 10, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.surfaceBorder, width: 1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 10,
-            offset: Offset(0, 3),
+    if (isPortrait) {
+      return _buildPortraitDeck(context);
+    }
+    return _buildLandscapeBar(context);
+  }
+
+  // --- PORTRAIT MATERIAL 3 EXPRESSIVE DECK ---
+  Widget _buildPortraitDeck(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final hasPressedNotes = controller.pressedMidiNotes.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Top Header Row: Brand + Octave Stepper
+          Row(
+            children: [
+              // Logo
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.piano, size: 20, color: colorScheme.primary),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'SimpleKeys',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    'Couch Piano',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+
+              // Octave Stepper Pill
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: controller.baseOctave > 2 ? controller.shiftOctaveDown : null,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        'C${controller.baseOctave}',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: controller.baseOctave < 5 ? controller.shiftOctaveUp : null,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 2. Expressive Active Chord / Harmony Card
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: hasPressedNotes
+                  ? colorScheme.primaryContainer.withValues(alpha: 0.35)
+                  : colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: hasPressedNotes
+                    ? colorScheme.primary.withValues(alpha: 0.5)
+                    : colorScheme.outlineVariant,
+                width: hasPressedNotes ? 1.5 : 1,
+              ),
+              boxShadow: hasPressedNotes
+                  ? [
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: hasPressedNotes ? colorScheme.primary : colorScheme.outlineVariant,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    controller.activeChord,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                      color: hasPressedNotes
+                          ? colorScheme.onSurface
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                if (controller.isMagicScale)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_awesome, size: 12, color: colorScheme.secondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'PENTATONIC',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            color: colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // 3. Official Material 3 SegmentedButton for Presets
+          SegmentedButton<SoundBankType>(
+            segments: const [
+              ButtonSegment(
+                value: SoundBankType.feltPiano,
+                label: Text('Felt'),
+                icon: Icon(Icons.piano),
+              ),
+              ButtonSegment(
+                value: SoundBankType.musicBox,
+                label: Text('Music Box'),
+                icon: Icon(Icons.notifications_active),
+              ),
+              ButtonSegment(
+                value: SoundBankType.dreamPad,
+                label: Text('Pad'),
+                icon: Icon(Icons.cloud),
+              ),
+            ],
+            selected: {controller.soundPreset},
+            onSelectionChanged: (newSelection) {
+              controller.setSoundPreset(newSelection.first);
+            },
+          ),
+
+          const SizedBox(height: 10),
+
+          // 4. Expressive FilterChips & Key Span Stepper Row
+          Row(
+            children: [
+              // Magic Scale Chip
+              FilterChip(
+                avatar: Icon(
+                  Icons.auto_awesome,
+                  size: 15,
+                  color: controller.isMagicScale
+                      ? colorScheme.onSecondaryContainer
+                      : colorScheme.onSurfaceVariant,
+                ),
+                label: const Text('Magic Scale'),
+                selected: controller.isMagicScale,
+                selectedColor: colorScheme.secondaryContainer,
+                onSelected: (_) => controller.toggleMagicScale(),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Sustain Pedal Chip
+              FilterChip(
+                avatar: Icon(
+                  controller.isSustainEnabled ? Icons.waves : Icons.graphic_eq,
+                  size: 15,
+                  color: controller.isSustainEnabled
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurfaceVariant,
+                ),
+                label: Text(controller.isSustainEnabled ? 'Sustain' : 'Damper'),
+                selected: controller.isSustainEnabled,
+                selectedColor: colorScheme.primaryContainer,
+                onSelected: (_) => controller.toggleSustain(),
+              ),
+
+              const Spacer(),
+
+              // Octave Span Toggle (1 Octave vs 2 Octaves)
+              SegmentedButton<int>(
+                showSelectedIcon: false,
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                segments: const [
+                  ButtonSegment(value: 1, label: Text('1 Oct')),
+                  ButtonSegment(value: 2, label: Text('2 Oct')),
+                ],
+                selected: {controller.octaveSpan},
+                onSelectionChanged: (newVal) {
+                  controller.setOctaveSpan(newVal.first);
+                },
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  // --- LANDSCAPE MATERIAL 3 EXPRESSIVE BAR ---
+  Widget _buildLandscapeBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final hasPressedNotes = controller.pressedMidiNotes.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
       child: Row(
         children: [
-          // App Logo / Title
-          const Row(
+          // Brand
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.piano, size: 20, color: AppColors.accentAmber),
-              SizedBox(width: 8),
+              Icon(Icons.piano, size: 20, color: colorScheme.primary),
+              const SizedBox(width: 8),
               Text(
                 'SimpleKeys',
-                style: TextStyle(
-                  fontSize: 14,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
-                  color: AppColors.textPrimary,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -52,265 +304,122 @@ class TopBar extends StatelessWidget {
 
           const SizedBox(width: 16),
 
-          // Expressive Octave Stepper Pill
-          _buildOctaveStepper(),
-
-          const Spacer(),
-
-          // Fluid Segmented Sound Preset Switcher
-          _buildPresetSwitcher(),
-
-          const SizedBox(width: 10),
-
-          // Sustain Pedal Toggle Pill
-          _buildSustainToggle(),
-
-          const SizedBox(width: 10),
-
-          // Radiant Magic Scale Toggle Pill
-          _buildMagicScaleToggle(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOctaveStepper() {
-    final canShiftDown = controller.baseOctave > 2;
-    final canShiftUp = controller.baseOctave < 5;
-
-    return Container(
-      height: 36,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDim,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.surfaceBorder, width: 0.75),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildStepperButton(
-            icon: Icons.remove,
-            enabled: canShiftDown,
-            onTap: controller.shiftOctaveDown,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+          // Octave Stepper
+          Container(
+            height: 36,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.unfold_more, size: 13, color: AppColors.accentAmber),
-                const SizedBox(width: 4),
-                Text(
-                  'C${controller.baseOctave} – C${controller.baseOctave + 2}',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                    color: AppColors.textPrimary,
+                IconButton(
+                  icon: const Icon(Icons.remove, size: 16),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: controller.baseOctave > 2 ? controller.shiftOctaveDown : null,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    'C${controller.baseOctave} – C${controller.baseOctave + controller.octaveSpan}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.primary,
+                    ),
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add, size: 16),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: controller.baseOctave < 5 ? controller.shiftOctaveUp : null,
                 ),
               ],
             ),
           ),
-          _buildStepperButton(
-            icon: Icons.add,
-            enabled: canShiftUp,
-            onTap: controller.shiftOctaveUp,
+
+          const SizedBox(width: 16),
+
+          // Active Chord Pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: hasPressedNotes
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: hasPressedNotes
+                    ? colorScheme.primary.withValues(alpha: 0.5)
+                    : colorScheme.outlineVariant,
+              ),
+            ),
+            child: Text(
+              controller.activeChord,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: hasPressedNotes
+                    ? colorScheme.onPrimaryContainer
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // Preset Switcher
+          SegmentedButton<SoundBankType>(
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            segments: const [
+              ButtonSegment(
+                value: SoundBankType.feltPiano,
+                label: Text('Felt'),
+                icon: Icon(Icons.piano, size: 14),
+              ),
+              ButtonSegment(
+                value: SoundBankType.musicBox,
+                label: Text('Music Box'),
+                icon: Icon(Icons.notifications_active, size: 14),
+              ),
+              ButtonSegment(
+                value: SoundBankType.dreamPad,
+                label: Text('Pad'),
+                icon: Icon(Icons.cloud, size: 14),
+              ),
+            ],
+            selected: {controller.soundPreset},
+            onSelectionChanged: (newSelection) {
+              controller.setSoundPreset(newSelection.first);
+            },
+          ),
+
+          const SizedBox(width: 12),
+
+          // Sustain Chip
+          FilterChip(
+            visualDensity: VisualDensity.compact,
+            avatar: Icon(
+              controller.isSustainEnabled ? Icons.waves : Icons.graphic_eq,
+              size: 14,
+            ),
+            label: Text(controller.isSustainEnabled ? 'Sustain' : 'Damper'),
+            selected: controller.isSustainEnabled,
+            onSelected: (_) => controller.toggleSustain(),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Magic Scale Chip
+          FilterChip(
+            visualDensity: VisualDensity.compact,
+            avatar: const Icon(Icons.auto_awesome, size: 14),
+            label: const Text('Magic Scale'),
+            selected: controller.isMagicScale,
+            selectedColor: colorScheme.secondaryContainer,
+            onSelected: (_) => controller.toggleMagicScale(),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStepperButton({
-    required IconData icon,
-    required bool enabled,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Icon(
-            icon,
-            size: 15,
-            color: enabled ? AppColors.textPrimary : AppColors.textMuted.withValues(alpha: 0.4),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPresetSwitcher() {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDim,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.surfaceBorder, width: 0.75),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: SoundBankType.values.map((preset) {
-          final isSelected = controller.soundPreset == preset;
-          final iconData = switch (preset) {
-            SoundBankType.feltPiano => Icons.piano,
-            SoundBankType.musicBox => Icons.notifications_active,
-            SoundBankType.dreamPad => Icons.cloud,
-          };
-
-          return GestureDetector(
-            onTap: () => controller.setSoundPreset(preset),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeInOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.surfaceHighlight
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(15),
-                border: isSelected
-                    ? Border.all(color: AppColors.accentAmber.withValues(alpha: 0.75), width: 1)
-                    : null,
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.accentAmber.withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 1),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    iconData,
-                    size: 14,
-                    color: isSelected ? AppColors.accentAmber : AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    preset.title,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildSustainToggle() {
-    final isSustain = controller.isSustainEnabled;
-
-    return GestureDetector(
-      onTap: controller.toggleSustain,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: isSustain
-              ? AppColors.accentAmber.withValues(alpha: 0.15)
-              : AppColors.surfaceDim,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSustain ? AppColors.accentAmber : AppColors.surfaceBorder,
-            width: isSustain ? 1.25 : 0.75,
-          ),
-          boxShadow: isSustain
-              ? [
-                  BoxShadow(
-                    color: AppColors.accentAmber.withValues(alpha: 0.2),
-                    blurRadius: 6,
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSustain ? Icons.waves : Icons.graphic_eq,
-              size: 14,
-              color: isSustain ? AppColors.accentAmber : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              isSustain ? 'Sustain' : 'Damper',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSustain ? FontWeight.w700 : FontWeight.w500,
-                color: isSustain ? AppColors.accentAmber : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMagicScaleToggle() {
-    final isActive = controller.isMagicScale;
-
-    return GestureDetector(
-      onTap: controller.toggleMagicScale,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutBack,
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 11),
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.accentCyan.withValues(alpha: 0.18)
-              : AppColors.surfaceDim,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isActive ? AppColors.accentCyan : AppColors.surfaceBorder,
-            width: isActive ? 1.5 : 0.75,
-          ),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: AppColors.accentCyan.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 14,
-              color: isActive ? AppColors.accentCyan : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Magic Scale',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                color: isActive ? AppColors.accentCyan : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ abstract final class AppColors {
   static const Color background = Color(0xFF0A0C0F);
   static const Color surfaceDim = Color(0xFF0F1217);
   static const Color surface = Color(0xFF14171E);
+  static const Color surfaceContainerLowest = Color(0xFF0A0C10);
   static const Color surfaceContainerLow = Color(0xFF181D26);
   static const Color surfaceContainer = Color(0xFF1E232E);
   static const Color surfaceContainerHigh = Color(0xFF262D3B);
