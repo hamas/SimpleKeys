@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../core/audio/audio_engine.dart';
@@ -165,16 +166,6 @@ class KeyboardController extends ChangeNotifier {
     _baseOctave--;
     _refreshNotes();
     unawaited(_reloadSoundBank());
-    notifyListeners();
-  }
-
-  void nextLevel() {
-    _level++;
-    notifyListeners();
-  }
-
-  void addScore(int points) {
-    _score += points;
     notifyListeners();
   }
 
