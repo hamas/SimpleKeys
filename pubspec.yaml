@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_soloud: ^5.2.3
+  google_fonts: ^9.0.0
 
 dev_dependencies:
   flutter_test:
