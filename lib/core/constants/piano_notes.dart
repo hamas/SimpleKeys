@@ -75,6 +75,46 @@ abstract final class PianoNotes {
     return notes;
   }
 
+  /// Generates the 16 notes for the 4x4 isomorphic pad grid.
+  /// Visual layout on screen from top to bottom:
+  /// Row 4 (Top):    A4, B4, C5, D5 (for baseOctave=3)
+  /// Row 3:          D4, E4, F4, G4
+  /// Row 2:          G3, A3, B3, C4
+  /// Row 1 (Bottom): C3, D3, E3, F3
+  static List<KeyNote> generateIsomorphicGridNotes({int baseOctave = 3}) {
+    final gridDefinitions = [
+      // Row 4 (Top)
+      [('A', baseOctave + 1), ('B', baseOctave + 1), ('C', baseOctave + 2), ('D', baseOctave + 2)],
+      // Row 3
+      [('D', baseOctave + 1), ('E', baseOctave + 1), ('F', baseOctave + 1), ('G', baseOctave + 1)],
+      // Row 2
+      [('G', baseOctave), ('A', baseOctave), ('B', baseOctave), ('C', baseOctave + 1)],
+      // Row 1 (Bottom)
+      [('C', baseOctave), ('D', baseOctave), ('E', baseOctave), ('F', baseOctave)],
+    ];
+
+    final List<KeyNote> notes = [];
+    for (final row in gridDefinitions) {
+      for (final entry in row) {
+        final name = entry.$1;
+        final octave = entry.$2;
+        final semitone = noteNames.indexOf(name);
+        final midi = (octave + 1) * 12 + semitone;
+        notes.add(
+          KeyNote(
+            name: name,
+            octave: octave,
+            midiNumber: midi,
+            frequency: KeyNote.midiToFrequency(midi),
+            isAccidental: false,
+            semitoneInOctave: semitone,
+          ),
+        );
+      }
+    }
+    return notes;
+  }
+
   /// Checks if a note fits within the active Magic Scale filter.
   static bool isInMagicScale(KeyNote note, {int rootSemitone = 0}) {
     final relativeSemitone = (note.semitoneInOctave - rootSemitone + 12) % 12;

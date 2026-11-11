@@ -6,6 +6,55 @@ import 'package:simplekeys/state/keyboard_controller.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('4x4 Isomorphic Pad Grid Geometry & Note Mapping', () {
+    test('generateIsomorphicGridNotes generates exactly 16 notes arranged in 4 rows', () {
+      final notes = PianoNotes.generateIsomorphicGridNotes(baseOctave: 3);
+      expect(notes.length, 16);
+
+      // Row 4 (Top): A4, B4, C5, D5 (indices 0..3)
+      expect(notes[0].label, 'A4');
+      expect(notes[1].label, 'B4');
+      expect(notes[2].label, 'C5');
+      expect(notes[3].label, 'D5');
+
+      // Row 3: D4, E4, F4, G4 (indices 4..7)
+      expect(notes[4].label, 'D4');
+      expect(notes[5].label, 'E4');
+      expect(notes[6].label, 'F4');
+      expect(notes[7].label, 'G4');
+
+      // Row 2: G3, A3, B3, C4 (indices 8..11)
+      expect(notes[8].label, 'G3');
+      expect(notes[9].label, 'A3');
+      expect(notes[10].label, 'B3');
+      expect(notes[11].label, 'C4');
+
+      // Row 1 (Bottom): C3, D3, E3, F3 (indices 12..15)
+      expect(notes[12].label, 'C3');
+      expect(notes[13].label, 'D3');
+      expect(notes[14].label, 'E3');
+      expect(notes[15].label, 'F3');
+    });
+
+    test('Root notes (all "C"s) are identified accurately as anchors', () {
+      final notes = PianoNotes.generateIsomorphicGridNotes(baseOctave: 3);
+      final cNotes = notes.where((n) => n.name == 'C').toList();
+
+      expect(cNotes.length, 3);
+      expect(cNotes.map((n) => n.label).toList(), containsAll(['C3', 'C4', 'C5']));
+    });
+
+    test('Base octave shift correctly updates isomorphic pad pitch frequencies', () {
+      final notesOctave2 = PianoNotes.generateIsomorphicGridNotes(baseOctave: 2);
+      final notesOctave4 = PianoNotes.generateIsomorphicGridNotes(baseOctave: 4);
+
+      // Row 1 start note shifts from C2 to C4
+      expect(notesOctave2[12].label, 'C2');
+      expect(notesOctave4[12].label, 'C4');
+      expect(notesOctave4[12].midiNumber - notesOctave2[12].midiNumber, 24); // 2 octaves = 24 semitones
+    });
+  });
+
   group('PianoNotes & Scales', () {
     test('generateNotes generates 2 octaves plus ending root C (25 keys total)', () {
       final notes = PianoNotes.generateNotes(startOctave: 3, octaveCount: 2);
@@ -64,8 +113,10 @@ void main() {
   });
 
   group('KeyboardLayout Zero-Allocation Cache', () {
-    test('Layout precomputes immutable white and black note lists and preceding indices', () {
+    test('Layout precomputes immutable white and black note lists for pianoKeys mode', () {
       final controller = KeyboardController();
+      controller.setKeyboardMode(KeyboardMode.pianoKeys);
+
       // Default is 2 octaves (15 white keys, 10 black keys)
       expect(controller.layout.whiteNotes.length, 15);
       expect(controller.layout.blackNotes.length, 10);
@@ -84,41 +135,48 @@ void main() {
   });
 
   group('KeyboardController State & Multi-Touch', () {
+    test('Defaults to isomorphic pad grid mode with 16 notes', () {
+      final controller = KeyboardController();
+      expect(controller.keyboardMode, KeyboardMode.isomorphicGrid);
+      expect(controller.notes.length, 16);
+      expect(controller.octaveRangeLabel, 'C3 – D5');
+    });
+
     test('Octave shift changes visible notes and updates layout', () {
       final controller = KeyboardController();
       expect(controller.baseOctave, 3);
-      expect(controller.notes.first.label, 'C3');
+      expect(controller.octaveRangeLabel, 'C3 – D5');
 
       controller.shiftOctaveUp();
       expect(controller.baseOctave, 4);
-      expect(controller.notes.first.label, 'C4');
-      expect(controller.layout.whiteNotes.first.label, 'C4');
+      expect(controller.octaveRangeLabel, 'C4 – D6');
 
       controller.shiftOctaveDown();
       expect(controller.baseOctave, 3);
-      expect(controller.notes.first.label, 'C3');
+      expect(controller.octaveRangeLabel, 'C3 – D5');
     });
 
     test('Pointer down, move, and up tracks pressed MIDI notes and updates active chord', () {
       final controller = KeyboardController();
-      final note1 = controller.notes.first; // C3
-      final note2 = controller.notes[2];    // D3
+      // In 4x4 isomorphic grid, C3 is note at index 12, G3 is note at index 8
+      final c3 = controller.notes.firstWhere((n) => n.label == 'C3');
+      final g3 = controller.notes.firstWhere((n) => n.label == 'G3');
 
       // Pointer 1 strikes C3 with velocity
-      controller.handlePointerDown(1, note1, velocity: 0.85);
-      expect(controller.pressedMidiNotes.contains(note1.midiNumber), isTrue);
+      controller.handlePointerDown(1, c3, velocity: 0.85);
+      expect(controller.pressedMidiNotes.contains(c3.midiNumber), isTrue);
       expect(controller.activeChord, 'C3');
 
-      // Pointer 2 strikes D3 simultaneously (multi-touch)
-      controller.handlePointerDown(2, note2, velocity: 0.95);
-      expect(controller.pressedMidiNotes.contains(note1.midiNumber), isTrue);
-      expect(controller.pressedMidiNotes.contains(note2.midiNumber), isTrue);
-      expect(controller.activeChord, contains('Major 2nd'));
+      // Pointer 2 strikes G3 simultaneously (multi-touch 5th interval)
+      controller.handlePointerDown(2, g3, velocity: 0.95);
+      expect(controller.pressedMidiNotes.contains(c3.midiNumber), isTrue);
+      expect(controller.pressedMidiNotes.contains(g3.midiNumber), isTrue);
+      expect(controller.activeChord, contains('Perfect 5th'));
 
       // Pointer 1 lifts
       controller.handlePointerUp(1);
-      expect(controller.pressedMidiNotes.contains(note1.midiNumber), isFalse);
-      expect(controller.pressedMidiNotes.contains(note2.midiNumber), isTrue);
+      expect(controller.pressedMidiNotes.contains(c3.midiNumber), isFalse);
+      expect(controller.pressedMidiNotes.contains(g3.midiNumber), isTrue);
 
       // Pointer 2 lifts
       controller.handlePointerUp(2);
@@ -147,6 +205,21 @@ void main() {
 
       controller.handlePointerDown(1, fNote);
       expect(controller.pressedMidiNotes.contains(fNote.midiNumber), isFalse);
+    });
+
+    test('Switching keyboard mode toggles between grid and piano keys', () {
+      final controller = KeyboardController();
+      expect(controller.keyboardMode, KeyboardMode.isomorphicGrid);
+      expect(controller.notes.length, 16);
+
+      controller.toggleKeyboardMode();
+      expect(controller.keyboardMode, KeyboardMode.pianoKeys);
+      expect(controller.notes.length, 25);
+      expect(controller.octaveRangeLabel, 'C3 – C5');
+
+      controller.toggleKeyboardMode();
+      expect(controller.keyboardMode, KeyboardMode.isomorphicGrid);
+      expect(controller.notes.length, 16);
     });
   });
 }

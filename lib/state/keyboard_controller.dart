@@ -6,6 +6,12 @@ import '../core/constants/chord_detector.dart';
 import '../core/constants/piano_notes.dart';
 import '../models/key_note.dart';
 
+/// Active layout style for the keyboard.
+enum KeyboardMode {
+  isomorphicGrid,
+  pianoKeys,
+}
+
 /// Precomputed immutable keyboard layout metadata for zero-allocation hit testing and rendering.
 @immutable
 class KeyboardLayout {
@@ -46,8 +52,11 @@ class KeyboardController extends ChangeNotifier {
   int _baseOctave = 3;
   int get baseOctave => _baseOctave;
 
-  int _octaveSpan = 2; // Default 2 octaves (15 white keys: C3 to C5)
+  int _octaveSpan = 2; // Default 2 octaves for piano keys
   int get octaveSpan => _octaveSpan;
+
+  KeyboardMode _keyboardMode = KeyboardMode.isomorphicGrid;
+  KeyboardMode get keyboardMode => _keyboardMode;
 
   SoundBankType _soundPreset = SoundBankType.feltPiano;
   SoundBankType get soundPreset => _soundPreset;
@@ -61,6 +70,22 @@ class KeyboardController extends ChangeNotifier {
   late KeyboardLayout _layout;
   KeyboardLayout get layout => _layout;
   List<KeyNote> get notes => _layout.allNotes;
+
+  /// Returns isomorphic grid notes (or current layout notes).
+  List<KeyNote> get isomorphicNotes {
+    if (_keyboardMode == KeyboardMode.isomorphicGrid) {
+      return _layout.allNotes;
+    }
+    return PianoNotes.generateIsomorphicGridNotes(baseOctave: _baseOctave);
+  }
+
+  /// Readable range label for top bar display (e.g., "C3 – D5").
+  String get octaveRangeLabel {
+    if (_keyboardMode == KeyboardMode.isomorphicGrid) {
+      return 'C$_baseOctave – D${_baseOctave + 2}';
+    }
+    return 'C$_baseOctave – C${_baseOctave + _octaveSpan}';
+  }
 
   /// Currently depressed MIDI notes (for visual glow / depressed state).
   final Set<int> _pressedMidiNotes = {};
@@ -84,12 +109,35 @@ class KeyboardController extends ChangeNotifier {
   }
 
   void _refreshNotes() {
-    final generated = PianoNotes.generateNotes(
-      startOctave: _baseOctave,
-      octaveCount: _octaveSpan,
-      includeEndingRoot: true,
-    );
+    final List<KeyNote> generated;
+    if (_keyboardMode == KeyboardMode.isomorphicGrid) {
+      generated = PianoNotes.generateIsomorphicGridNotes(baseOctave: _baseOctave);
+    } else {
+      generated = PianoNotes.generateNotes(
+        startOctave: _baseOctave,
+        octaveCount: _octaveSpan,
+        includeEndingRoot: true,
+      );
+    }
     _layout = KeyboardLayout(allNotes: generated);
+  }
+
+  /// Sets active keyboard mode (4x4 Isomorphic Pad Grid vs Linear Piano Keys).
+  void setKeyboardMode(KeyboardMode mode) {
+    if (_keyboardMode == mode) return;
+    _keyboardMode = mode;
+    _refreshNotes();
+    _reloadSoundBank();
+    notifyListeners();
+  }
+
+  /// Toggles between isomorphic pad grid and piano keys.
+  void toggleKeyboardMode() {
+    setKeyboardMode(
+      _keyboardMode == KeyboardMode.isomorphicGrid
+          ? KeyboardMode.pianoKeys
+          : KeyboardMode.isomorphicGrid,
+    );
   }
 
   Future<void> _reloadSoundBank() async {

@@ -67,6 +67,22 @@ class TopBar extends StatelessWidget {
               ),
               const Spacer(),
 
+              // Layout Mode Toggle Button (4x4 Pads vs Piano)
+              IconButton.filledTonal(
+                tooltip: controller.keyboardMode == KeyboardMode.isomorphicGrid
+                    ? 'Switch to Piano Keys'
+                    : 'Switch to 4x4 Pads',
+                icon: Icon(
+                  controller.keyboardMode == KeyboardMode.isomorphicGrid
+                      ? Icons.grid_view_rounded
+                      : Icons.piano,
+                  size: 20,
+                ),
+                onPressed: controller.toggleKeyboardMode,
+              ),
+
+              const SizedBox(width: 8),
+
               // Prominent Octave Stepper Pill (Height 46dp, generous tap area)
               Container(
                 height: 46,
@@ -87,7 +103,7 @@ class TopBar extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
-                        'C${controller.baseOctave} – C${controller.baseOctave + controller.octaveSpan}',
+                        controller.octaveRangeLabel,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: colorScheme.primary,
@@ -283,6 +299,22 @@ class TopBar extends StatelessWidget {
 
           const SizedBox(width: 16),
 
+          // Layout Mode Toggle Button (4x4 Pads vs Piano)
+          IconButton.filledTonal(
+            tooltip: controller.keyboardMode == KeyboardMode.isomorphicGrid
+                ? 'Switch to Piano Keys'
+                : 'Switch to 4x4 Pads',
+            icon: Icon(
+              controller.keyboardMode == KeyboardMode.isomorphicGrid
+                  ? Icons.grid_view_rounded
+                  : Icons.piano,
+              size: 18,
+            ),
+            onPressed: controller.toggleKeyboardMode,
+          ),
+
+          const SizedBox(width: 12),
+
           // Octave Stepper
           Container(
             height: 42,
@@ -301,7 +333,7 @@ class TopBar extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
-                    'C${controller.baseOctave} – C${controller.baseOctave + controller.octaveSpan}',
+                    controller.octaveRangeLabel,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: colorScheme.primary,
