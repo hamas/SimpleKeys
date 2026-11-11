@@ -3,7 +3,8 @@ import '../../state/keyboard_controller.dart';
 import 'isomorphic_pad.dart';
 
 /// 4x4 tactile isomorphic pad grid container.
-/// Renders 16 square pads with generous 10dp spacing, centered layout, and zero-latency multi-touch.
+/// Dynamically fills the available screen area with zero dead space,
+/// perfectly proportioned 3D pads, and zero-latency multi-touch.
 class IsomorphicPadGrid extends StatelessWidget {
   final KeyboardController controller;
 
@@ -16,46 +17,57 @@ class IsomorphicPadGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final notes = controller.isomorphicNotes;
 
-    return Center(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Compute side length to keep pads perfectly square and centered
-          final double side = constraints.maxWidth < constraints.maxHeight
-              ? constraints.maxWidth
-              : constraints.maxHeight;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double totalWidth = constraints.maxWidth;
+        final double totalHeight = constraints.maxHeight;
 
-          const double padding = 12.0;
-          const double spacing = 10.0;
+        if (totalWidth <= 0 || totalHeight <= 0) {
+          return const SizedBox.shrink();
+        }
 
-          return SizedBox(
-            width: side,
-            height: side,
-            child: Padding(
-              padding: const EdgeInsets.all(padding),
-              child: GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  mainAxisSpacing: spacing,
-                  crossAxisSpacing: spacing,
-                  childAspectRatio: 1.0,
-                ),
-                itemCount: notes.length,
-                itemBuilder: (context, index) {
-                  final note = notes[index];
-                  return IsomorphicPad(
-                    key: ValueKey('iso_pad_${note.midiNumber}_$index'),
-                    note: note,
-                    controller: controller,
-                  );
-                },
-              ),
+        const double horizontalPadding = 14.0;
+        const double verticalPadding = 8.0;
+        const double spacing = 10.0;
+
+        // Compute available space for the 4x4 grid
+        final double netWidth = totalWidth - (horizontalPadding * 2) - (spacing * 3);
+        final double netHeight = totalHeight - (verticalPadding * 2) - (spacing * 3);
+
+        final double padWidth = netWidth / 4;
+        final double padHeight = netHeight / 4;
+
+        // Dynamic aspect ratio ensuring pads fill the vertical space without overflow
+        final double childAspectRatio = (padWidth / padHeight).clamp(0.4, 2.0);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: spacing,
+              crossAxisSpacing: spacing,
+              childAspectRatio: childAspectRatio,
             ),
-          );
-        },
-      ),
+            itemCount: notes.length,
+            itemBuilder: (context, index) {
+              final note = notes[index];
+              final rowIndex = index ~/ 4; // 0 = Row 4 (Top), 1 = Row 3, 2 = Row 2, 3 = Row 1 (Bottom)
+              return IsomorphicPad(
+                key: ValueKey('iso_pad_${note.midiNumber}_$index'),
+                note: note,
+                controller: controller,
+                rowIndex: rowIndex,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
-

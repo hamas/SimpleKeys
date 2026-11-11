@@ -53,12 +53,9 @@ class _PianoScreenState extends State<PianoScreen> {
                       TopBar(controller: _controller, isPortrait: true),
 
                       if (isIsoMode)
-                        // Centered 4x4 Isomorphic Pad Grid occupying lower ~65% of screen
+                        // 4x4 Isomorphic Pad Grid seamlessly filling available lower screen
                         Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: IsomorphicPadGrid(controller: _controller),
-                          ),
+                          child: IsomorphicPadGrid(controller: _controller),
                         )
                       else ...[
                         const Spacer(),
