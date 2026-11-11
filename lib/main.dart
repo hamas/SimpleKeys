@@ -6,23 +6,21 @@ import 'presentation/screens/piano_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Allow portrait and landscape fluid rotation
+  // Optimized portrait orientation for 4x5 candy pad board
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
   ]);
 
-  // Keep device status bar (time, battery, notifications) fully visible
+  // Keep system UI bars visible with edge-to-edge transparent integration
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
       systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -37,7 +35,7 @@ class SimpleKeysApp extends StatelessWidget {
     return MaterialApp(
       title: 'SimpleKeys',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.candyTheme,
       home: const PianoScreen(),
     );
   }

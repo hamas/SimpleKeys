@@ -1,96 +1,67 @@
 import '../../models/key_note.dart';
 
-/// Musical constants, scale definitions, and keyboard layout generators.
+/// Musical pitch constants and isomorphic note matrix generators for SimpleKeys.
 abstract final class PianoNotes {
+  /// Chromatic scale pitch names in standard Scientific Pitch Notation.
   static const List<String> noteNames = [
-    'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B',
   ];
 
-  static const List<bool> accidentalPattern = [
-    false, // C
-    true,  // C#
-    false, // D
-    true,  // D#
-    false, // E
-    false, // F
-    true,  // F#
-    false, // G
-    true,  // G#
-    false, // A
-    true,  // A#
-    false, // B
-  ];
-
-  /// Standard C-Major Pentatonic semitone offsets (0=C, 2=D, 4=E, 7=G, 9=A).
-  /// Excludes half-step clashes (F=5, B=11) and accidentals for zero-dissonance improv.
-  static const Set<int> pentatonicSemitones = {0, 2, 4, 7, 9};
-
-  /// Generates a list of [KeyNote]s starting at [startOctave] spanning [octaveCount] octaves,
-  /// plus an optional closing root note (e.g., C3 to C5).
-  static List<KeyNote> generateNotes({
-    int startOctave = 3,
-    int octaveCount = 2,
-    bool includeEndingRoot = true,
-  }) {
-    final List<KeyNote> notes = [];
-    int whiteKeyIndex = 0;
-
-    for (int o = 0; o < octaveCount; o++) {
-      final currentOctave = startOctave + o;
-      for (int s = 0; s < 12; s++) {
-        final midi = (currentOctave + 1) * 12 + s;
-        final isAccidental = accidentalPattern[s];
-        final freq = KeyNote.midiToFrequency(midi);
-
-        notes.add(
-          KeyNote(
-            name: noteNames[s],
-            octave: currentOctave,
-            midiNumber: midi,
-            frequency: freq,
-            isAccidental: isAccidental,
-            semitoneInOctave: s,
-            whiteKeyIndex: isAccidental ? null : whiteKeyIndex++,
-          ),
-        );
-      }
-    }
-
-    if (includeEndingRoot) {
-      final endingOctave = startOctave + octaveCount;
-      final endingMidi = (endingOctave + 1) * 12;
-      notes.add(
-        KeyNote(
-          name: noteNames[0], // 'C'
-          octave: endingOctave,
-          midiNumber: endingMidi,
-          frequency: KeyNote.midiToFrequency(endingMidi),
-          isAccidental: false,
-          semitoneInOctave: 0,
-          whiteKeyIndex: whiteKeyIndex,
-        ),
-      );
-    }
-
-    return notes;
-  }
-
-  /// Generates the 16 notes for the 4x4 isomorphic pad grid.
+  /// Generates the notes for the isomorphic pad grid.
+  /// Default: 5 rows x 4 columns = 20 pads (matching the candy game layout).
   /// Visual layout on screen from top to bottom:
-  /// Row 4 (Top):    A4, B4, C5, D5 (for baseOctave=3)
+  /// Row 5 (Top):    E5, F5, G5, A5 (for baseOctave=3)
+  /// Row 4:          A4, B4, C5, D5
   /// Row 3:          D4, E4, F4, G4
   /// Row 2:          G3, A3, B3, C4
   /// Row 1 (Bottom): C3, D3, E3, F3
-  static List<KeyNote> generateIsomorphicGridNotes({int baseOctave = 3}) {
-    final gridDefinitions = [
-      // Row 4 (Top)
-      [('A', baseOctave + 1), ('B', baseOctave + 1), ('C', baseOctave + 2), ('D', baseOctave + 2)],
-      // Row 3
-      [('D', baseOctave + 1), ('E', baseOctave + 1), ('F', baseOctave + 1), ('G', baseOctave + 1)],
-      // Row 2
-      [('G', baseOctave), ('A', baseOctave), ('B', baseOctave), ('C', baseOctave + 1)],
-      // Row 1 (Bottom)
-      [('C', baseOctave), ('D', baseOctave), ('E', baseOctave), ('F', baseOctave)],
+  static List<KeyNote> generateIsomorphicGridNotes({
+    int baseOctave = 3,
+    int rows = 5,
+  }) {
+    final List<List<(String, int)>> gridDefinitions = [
+      if (rows >= 5)
+        [
+          ('E', baseOctave + 2),
+          ('F', baseOctave + 2),
+          ('G', baseOctave + 2),
+          ('A', baseOctave + 2),
+        ],
+      [
+        ('A', baseOctave + 1),
+        ('B', baseOctave + 1),
+        ('C', baseOctave + 2),
+        ('D', baseOctave + 2),
+      ],
+      [
+        ('D', baseOctave + 1),
+        ('E', baseOctave + 1),
+        ('F', baseOctave + 1),
+        ('G', baseOctave + 1),
+      ],
+      [
+        ('G', baseOctave),
+        ('A', baseOctave),
+        ('B', baseOctave),
+        ('C', baseOctave + 1),
+      ],
+      [
+        ('C', baseOctave),
+        ('D', baseOctave),
+        ('E', baseOctave),
+        ('F', baseOctave),
+      ],
     ];
 
     final List<KeyNote> notes = [];
@@ -115,10 +86,25 @@ abstract final class PianoNotes {
     return notes;
   }
 
-  /// Checks if a note fits within the active Magic Scale filter.
-  static bool isInMagicScale(KeyNote note, {int rootSemitone = 0}) {
-    final relativeSemitone = (note.semitoneInOctave - rootSemitone + 12) % 12;
-    return pentatonicSemitones.contains(relativeSemitone);
+  /// Solfège name mapping (Do, Re, Mi, Fa, Sol, La, Si).
+  static const Map<String, String> solfegeNoteMap = {
+    'C': 'Do',
+    'C#': 'Do#',
+    'D': 'Re',
+    'D#': 'Re#',
+    'E': 'Mi',
+    'F': 'Fa',
+    'F#': 'Fa#',
+    'G': 'Sol',
+    'G#': 'Sol#',
+    'A': 'La',
+    'A#': 'La#',
+    'B': 'Si',
+  };
+
+  /// Returns note label formatted in Solfège (e.g., "Do3", "Fa#4").
+  static String toSolfege(String noteName, int octave) {
+    final base = solfegeNoteMap[noteName] ?? noteName;
+    return '$base$octave';
   }
 }
-

@@ -2,45 +2,24 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../core/audio/audio_engine.dart';
 import '../core/audio/sound_presets.dart';
-import '../core/constants/chord_detector.dart';
 import '../core/constants/piano_notes.dart';
+import '../core/lessons/tutorial_lessons.dart';
 import '../models/key_note.dart';
 
-/// Active layout style for the keyboard.
-enum KeyboardMode {
-  isomorphicGrid,
-  pianoKeys,
+/// App operation mode: Free Play vs Assisted Learning.
+enum AppMode {
+  play,
+  teach,
 }
 
-/// Precomputed immutable keyboard layout metadata for zero-allocation hit testing and rendering.
-@immutable
-class KeyboardLayout {
-  final List<KeyNote> allNotes;
-  final List<KeyNote> whiteNotes;
-  final List<KeyNote> blackNotes;
-  final Map<KeyNote, int> blackToPrecedingWhiteIndex;
-
-  KeyboardLayout({required this.allNotes})
-      : whiteNotes = allNotes.where((n) => !n.isAccidental).toList(growable: false),
-        blackNotes = allNotes.where((n) => n.isAccidental).toList(growable: false),
-        blackToPrecedingWhiteIndex = _buildPrecedingMap(allNotes);
-
-  static Map<KeyNote, int> _buildPrecedingMap(List<KeyNote> notes) {
-    final Map<KeyNote, int> map = {};
-    for (int i = 0; i < notes.length; i++) {
-      final note = notes[i];
-      if (note.isAccidental && i > 0) {
-        final prev = notes[i - 1];
-        if (!prev.isAccidental && prev.whiteKeyIndex != null) {
-          map[note] = prev.whiteKeyIndex!;
-        }
-      }
-    }
-    return Map.unmodifiable(map);
-  }
+/// Note naming convention: Scientific Pitch ("ABC") vs Solfège ("DoReMi").
+enum NoteNotation {
+  scientific,
+  solfege,
 }
 
-/// Lightweight controller managing keyboard state, active octaves, presets, and multi-touch pointer routing.
+/// Central controller managing 4x5 candy pad audio routing,
+/// assisted Teach mode lesson progression, and game stats.
 class KeyboardController extends ChangeNotifier {
   final AudioEngine _audioEngine;
 
@@ -49,58 +28,65 @@ class KeyboardController extends ChangeNotifier {
     _refreshNotes();
   }
 
+  // --- Octaves & Notes ---
   int _baseOctave = 3;
   int get baseOctave => _baseOctave;
 
-  int _octaveSpan = 2; // Default 2 octaves for piano keys
-  int get octaveSpan => _octaveSpan;
+  late List<KeyNote> _isomorphicNotes;
+  List<KeyNote> get isomorphicNotes => _isomorphicNotes;
 
-  KeyboardMode _keyboardMode = KeyboardMode.isomorphicGrid;
-  KeyboardMode get keyboardMode => _keyboardMode;
-
+  // --- Sound & Pitch Configuration ---
   SoundBankType _soundPreset = SoundBankType.feltPiano;
   SoundBankType get soundPreset => _soundPreset;
-
-  bool _isMagicScale = false;
-  bool get isMagicScale => _isMagicScale;
 
   bool _isSustainEnabled = true;
   bool get isSustainEnabled => _isSustainEnabled;
 
-  late KeyboardLayout _layout;
-  KeyboardLayout get layout => _layout;
-  List<KeyNote> get notes => _layout.allNotes;
+  NoteNotation _notation = NoteNotation.scientific;
+  NoteNotation get notation => _notation;
 
-  /// Returns isomorphic grid notes (or current layout notes).
-  List<KeyNote> get isomorphicNotes {
-    if (_keyboardMode == KeyboardMode.isomorphicGrid) {
-      return _layout.allNotes;
+  // --- Modes & Lessons ---
+  AppMode _appMode = AppMode.play;
+  AppMode get appMode => _appMode;
+
+  TutorialSong _currentLesson = TutorialSong.sampleSongs[0];
+  TutorialSong get currentLesson => _currentLesson;
+
+  int _lessonStepIndex = 0;
+  int get lessonStepIndex => _lessonStepIndex;
+
+  LessonStep? get currentTargetStep =>
+      (_appMode == AppMode.teach && _lessonStepIndex < _currentLesson.steps.length)
+          ? _currentLesson.steps[_lessonStepIndex]
+          : null;
+
+  // --- Candy Game Stats ---
+  int _score = 2840;
+  int get score => _score;
+  String get formattedScore {
+    final s = _score.toString().padLeft(5, '0');
+    if (s.length >= 5) {
+      return '${s.substring(0, 2)},${s.substring(2)}';
     }
-    return PianoNotes.generateIsomorphicGridNotes(baseOctave: _baseOctave);
+    return s;
   }
 
-  /// Readable range label for top bar display (e.g., "C3 – D5").
-  String get octaveRangeLabel {
-    if (_keyboardMode == KeyboardMode.isomorphicGrid) {
-      return 'C$_baseOctave – D${_baseOctave + 2}';
-    }
-    return 'C$_baseOctave – C${_baseOctave + _octaveSpan}';
-  }
+  int _lives = 5;
+  int get lives => _lives;
 
-  /// Currently depressed MIDI notes (for visual glow / depressed state).
+  int _level = 1;
+  int get level => _level;
+
+  // --- Pressed Notes Tracking ---
   final Set<int> _pressedMidiNotes = {};
   Set<int> get pressedMidiNotes => Set.unmodifiable(_pressedMidiNotes);
 
-  /// Real-time musical chord or interval detection.
-  String get activeChord => ChordDetector.detectChord(_pressedMidiNotes);
-
-  /// Map of active pointer IDs to their currently triggered MIDI note number.
   final Map<int, int> _pointerToMidi = {};
 
   bool _isAudioReady = false;
   bool get isAudioReady => _isAudioReady;
 
-  /// Initializes audio engine and preloads initial sound bank.
+  /// Initializes the audio engine and preloads the initial sound bank.
   Future<void> initializeAudio() async {
     await _audioEngine.initialize();
     await _reloadSoundBank();
@@ -109,118 +95,145 @@ class KeyboardController extends ChangeNotifier {
   }
 
   void _refreshNotes() {
-    final List<KeyNote> generated;
-    if (_keyboardMode == KeyboardMode.isomorphicGrid) {
-      generated = PianoNotes.generateIsomorphicGridNotes(baseOctave: _baseOctave);
-    } else {
-      generated = PianoNotes.generateNotes(
-        startOctave: _baseOctave,
-        octaveCount: _octaveSpan,
-        includeEndingRoot: true,
-      );
-    }
-    _layout = KeyboardLayout(allNotes: generated);
-  }
-
-  /// Sets active keyboard mode (4x4 Isomorphic Pad Grid vs Linear Piano Keys).
-  void setKeyboardMode(KeyboardMode mode) {
-    if (_keyboardMode == mode) return;
-    _keyboardMode = mode;
-    _refreshNotes();
-    _reloadSoundBank();
-    notifyListeners();
-  }
-
-  /// Toggles between isomorphic pad grid and piano keys.
-  void toggleKeyboardMode() {
-    setKeyboardMode(
-      _keyboardMode == KeyboardMode.isomorphicGrid
-          ? KeyboardMode.pianoKeys
-          : KeyboardMode.isomorphicGrid,
+    _isomorphicNotes = PianoNotes.generateIsomorphicGridNotes(
+      baseOctave: _baseOctave,
+      rows: 5,
     );
   }
 
   Future<void> _reloadSoundBank() async {
     await _audioEngine.loadSoundBank(
-      notes: _layout.allNotes,
+      notes: _isomorphicNotes,
       preset: _soundPreset,
     );
   }
 
-  /// Sets visible keyboard octave span (1 or 2 octaves).
-  void setOctaveSpan(int span) {
-    if (span != 1 && span != 2) return;
-    if (_octaveSpan == span) return;
-    _octaveSpan = span;
-    _refreshNotes();
-    _reloadSoundBank();
-    notifyListeners();
-  }
-
-  /// Shift visible octave up (max base octave 5).
-  void shiftOctaveUp() {
-    if (_baseOctave >= 5) return;
-    _baseOctave++;
-    _refreshNotes();
-    _reloadSoundBank();
-    notifyListeners();
-  }
-
-  /// Shift visible octave down (min base octave 2).
-  void shiftOctaveDown() {
-    if (_baseOctave <= 2) return;
-    _baseOctave--;
-    _refreshNotes();
-    _reloadSoundBank();
-    notifyListeners();
-  }
-
-  /// Switch the active instrument sound preset.
-  void setSoundPreset(SoundBankType preset) {
-    if (_soundPreset == preset) return;
-    _soundPreset = preset;
-    _reloadSoundBank();
-    notifyListeners();
-  }
-
-  /// Toggles the "Magic Scale" (Harmonic Pentatonic lock).
-  void toggleMagicScale() {
-    _isMagicScale = !_isMagicScale;
+  // --- State Modifiers ---
+  void setAppMode(AppMode mode) {
+    if (_appMode == mode) return;
+    _appMode = mode;
     HapticFeedback.selectionClick();
     notifyListeners();
   }
 
-  /// Toggles sustain pedal mode (sustain vs staccato damping).
+  void toggleAppMode() {
+    setAppMode(_appMode == AppMode.play ? AppMode.teach : AppMode.play);
+  }
+
+  void toggleNotation() {
+    _notation = _notation == NoteNotation.scientific
+        ? NoteNotation.solfege
+        : NoteNotation.scientific;
+    HapticFeedback.selectionClick();
+    notifyListeners();
+  }
+
   void toggleSustain() {
     _isSustainEnabled = !_isSustainEnabled;
     HapticFeedback.selectionClick();
     notifyListeners();
   }
 
-  /// Check whether a note is playable in the current scale mode.
-  bool isNotePlayable(KeyNote note) {
-    if (!_isMagicScale) return true;
-    return PianoNotes.isInMagicScale(note);
+  void setSoundPreset(SoundBankType preset) {
+    if (_soundPreset == preset) return;
+    _soundPreset = preset;
+    unawaited(_reloadSoundBank());
+    notifyListeners();
   }
 
-  /// Called when a pointer hits a key.
+  void setLesson(TutorialSong song) {
+    _currentLesson = song;
+    _lessonStepIndex = 0;
+    notifyListeners();
+  }
+
+  void resetLesson() {
+    _lessonStepIndex = 0;
+    notifyListeners();
+  }
+
+  void shiftOctaveUp() {
+    if (_baseOctave >= 4) return;
+    _baseOctave++;
+    _refreshNotes();
+    unawaited(_reloadSoundBank());
+    notifyListeners();
+  }
+
+  void shiftOctaveDown() {
+    if (_baseOctave <= 2) return;
+    _baseOctave--;
+    _refreshNotes();
+    unawaited(_reloadSoundBank());
+    notifyListeners();
+  }
+
+  void nextLevel() {
+    _level++;
+    notifyListeners();
+  }
+
+  void addScore(int points) {
+    _score += points;
+    notifyListeners();
+  }
+
+  void nextLevel() {
+    _level++;
+    notifyListeners();
+  }
+
+  void addScore(int points) {
+    _score += points;
+    notifyListeners();
+  }
+
+  /// Checks if a note is currently targeted in Teach mode.
+  bool isNoteTargetedInTeach(KeyNote note) {
+    if (_appMode != AppMode.teach) return false;
+    final target = currentTargetStep;
+    if (target == null) return false;
+    if (target.preferredOctave != null) {
+      return target.noteName == note.name && target.preferredOctave == note.octave;
+    }
+    return target.noteName == note.name;
+  }
+
+  /// Formatted note label (e.g., "C3" or "Do3").
+  String getFormattedNoteLabel(KeyNote note) {
+    if (_notation == NoteNotation.solfege) {
+      return PianoNotes.toSolfege(note.name, note.octave);
+    }
+    return note.label;
+  }
+
+  bool isNotePlayable(KeyNote note) => true;
+
+  // --- Multi-Touch Event Routing ---
   void handlePointerDown(int pointerId, KeyNote note, {double velocity = 1.0}) {
-    if (!isNotePlayable(note)) return;
+    // Check Teach Mode progression
+    if (_appMode == AppMode.teach && isNoteTargetedInTeach(note)) {
+      _lessonStepIndex = (_lessonStepIndex + 1) % _currentLesson.steps.length;
+      _score += 100;
+    } else if (_appMode == AppMode.teach && !isNoteTargetedInTeach(note)) {
+      if (_lives > 1) {
+        _lives--;
+      }
+    } else {
+      _score += 10;
+    }
 
     _pointerToMidi[pointerId] = note.midiNumber;
     _pressedMidiNotes.add(note.midiNumber);
 
-    HapticFeedback.selectionClick();
     _audioEngine.playNote(note.midiNumber, volume: velocity);
-
     notifyListeners();
   }
 
-  /// Called when a pointer drags across the keyboard (glissando/slide).
   void handlePointerMove(int pointerId, KeyNote? newNote, {double velocity = 1.0}) {
     final currentMidi = _pointerToMidi[pointerId];
 
-    if (newNote == null || !isNotePlayable(newNote)) {
+    if (newNote == null) {
       if (currentMidi != null) {
         if (!_isSustainEnabled) {
           _audioEngine.stopNote(currentMidi);
@@ -233,22 +246,27 @@ class KeyboardController extends ChangeNotifier {
     }
 
     if (currentMidi != newNote.midiNumber) {
-      if (currentMidi != null && !_isSustainEnabled) {
-        _audioEngine.stopNote(currentMidi);
+      if (currentMidi != null) {
+        if (!_isSustainEnabled) {
+          _audioEngine.stopNote(currentMidi);
+        }
+      }
+
+      // Check Teach Mode progression
+      if (_appMode == AppMode.teach && isNoteTargetedInTeach(newNote)) {
+        _lessonStepIndex = (_lessonStepIndex + 1) % _currentLesson.steps.length;
+        _score += 100;
       }
 
       _pointerToMidi[pointerId] = newNote.midiNumber;
       _pressedMidiNotes.add(newNote.midiNumber);
 
-      HapticFeedback.selectionClick();
       _audioEngine.playNote(newNote.midiNumber, volume: velocity);
-
       _recalculatePressedNotes();
       notifyListeners();
     }
   }
 
-  /// Called when a pointer is lifted or canceled.
   void handlePointerUp(int pointerId) {
     final releasedMidi = _pointerToMidi.remove(pointerId);
     if (releasedMidi != null) {

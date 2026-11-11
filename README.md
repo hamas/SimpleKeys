@@ -1,9 +1,9 @@
-# SimpleKeys 🎹
+# SimpleKeys 🍬🎹
 
-> A minimalist, couch-friendly, zero-latency piano app for Android built with Flutter and backed by a high-performance C++ audio engine (`flutter_soloud` via FFI).
+> A juicy, tactile 3D candy-style music and keyboard game for Android built with Flutter and backed by a high-performance C++ audio engine (`flutter_soloud` via FFI).
 
 <p align="center">
-  <img src="assets/app_logo.png" width="160" alt="SimpleKeys App Icon" style="border-radius: 36px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);" />
+  <img src="assets/app_logo.png" width="160" alt="SimpleKeys App Icon" style="border-radius: 36px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);" />
 </p>
 
 <p align="center">
@@ -18,52 +18,63 @@
 
 ## 🌟 Philosophy & Features
 
-SimpleKeys is designed from the ground up for couch-side playing and zero-friction keyboard practice:
+SimpleKeys combines a vibrant, glossy 3D "Candy Crush" aesthetic with a responsive 4×5 isomorphic musical pad grid and low-latency audio synthesis:
 
-- ⚡ **Instant Launch (<500ms)**: Direct to keys without splash screens, onboarding delays, or menus.
-- ⏱️ **Zero-Latency Audio**: Backed by `flutter_soloud` (miniaudio/AAudio FFI) running directly at the Android audio sub-system level with 512-frame stream buffers.
-- 🖐️ **Zero-Lag Multi-Touch Hot Path**: Bypasses Flutter's gesture arena via custom raw `Listener` tracking pointers by `pointerId`. Precomputed `KeyboardLayout` cache ensures zero garbage collection pressure during 120Hz glissando slides.
-- 🎯 **Mathematical Hit-Testing**: Upper 60% black-over-white key bound detection eliminates touch-box bleeding between sharps and naturals.
-- 🎹 **Key Physics & 3D Tactility**:
-  - **White Keys**: 3.5px mechanical key depression (`Transform.translate`), front-lip 3D depth bevel, and warm amber ambient glow on strike.
-  - **Black Keys**: 2.5px downward travel, dual-bevel edge highlights, top satin specular reflection, and electric cyan under-glow.
-- 💥 **Dynamic Strike Velocity**: Normalizes vertical touch coordinates ($y$-position) and touch force/pressure to dynamically modulate acoustic strike volume ($0.5$ to $1.0$).
-- 🎛️ **Material 3 Expressive Control Deck**:
-  - **Fluid Segmented Preset Switcher**: Animated spring pill transitions across *Felt Piano*, *Music Box*, and *Dream Pad*.
-  - **Octave Stepper Pill**: Connected stepper container with pitch badge (`C3 – C5`).
-  - **Radiant Magic Scale Pill**: Ambient pulsating cyan glow badge; harmonically dims discordant semitones (e.g. F and B in C Major) for casual zero-mistake improvisation.
-  - **Sustain / Damper Pedal**: Instant toggle between natural acoustic ring-out and crisp staccato release.
-- 📳 **Haptic Feedback**: Fires subtle `HapticFeedback.selectionClick()` on every new key strike.
-- 🎨 **Full-Bleed Adaptive Icon**: Native Android 8.0+ adaptive icon suite with a full-bleed deep slate background (`#1C202B`) that seamlessly extends across circular, squircle, and pebble launcher masks without letterboxing.
+- 🍬 **Tactile 3D Candy Jelly Pads**:
+  - 4 vibrant candy color hues: Bubblegum Pink, Sky Blue, Apple Green, and Mango Yellow.
+  - Glossy curved pillow highlights and solid 5dp 3D bottom bevels.
+  - Physically debossed musical notes (♪ single and ♫ double beamed notes) molded into each pad.
+  - Realistic 4dp downward physical key travel with instant haptic feedback.
+- ⚡ **Zero-Latency Audio Engine**:
+  - Backed by `flutter_soloud` (miniaudio/AAudio FFI) running directly on the Android hardware audio subsystem.
+  - Multi-touch raw `Listener` bypassing Flutter's gesture arena for instant polyphonic chord triggering.
+- 🎓 **Interactive Teach & Play Modes**:
+  - **🕹️ Play Mode**: Free-form couch-side jamming across a 2.5-octave isomorphic scale.
+  - **🎓 Teach Mode**: Step-by-step interactive lessons (e.g. *C Major Scale*, *Twinkle Twinkle*, *Ode to Joy*). Follow the golden sparkling pads on the board!
+- 🏆 **Game Stats & Progression**:
+  - 3D **Lives** tracking with an embossed red heart badge.
+  - Real-time **Score** tracking (`02,840` format) rewarding musical accuracy.
+  - **Level** badge integrated into the 3D lavender board rim.
+- 🎛️ **Sound Instruments & Customization**:
+  - Multi-preset synthesis: *Felt Piano*, *Music Box*, and *Dream Pad*.
+  - Notation toggle: Standard Scientific Pitch (`C3`, `G4`) vs Solfège (`Do3`, `Sol4`).
+  - Sustain toggle for acoustic ring-out vs staccato release.
+- 📱 **Edge-to-Edge Android UI**:
+  - Portrait-locked layout tailored for one-handed and two-handed thumb/finger play.
+  - Transparent system status bar with dynamic dark icons on top of a soft pastel mint background.
 
 ---
 
 ## 📂 Architecture & Directory Structure
 
-```
+```text
 lib/
-├── main.dart                          # Immersive entrypoint, hardware orientation lock, fast boot
+├── main.dart                          # App entrypoint, portrait orientation lock, edge-to-edge UI
 ├── core/
 │   ├── audio/
-│   │   ├── audio_engine.dart          # Polyphonic SoLoud C++ AAudio stream engine & generation guard
-│   │   └── sound_presets.dart         # Pure in-memory 16-bit PCM WAV additive synthesis engines
+│   │   ├── audio_engine.dart          # Low-latency polyphonic SoLoud C++ AAudio stream engine
+│   │   └── sound_presets.dart         # Pure in-memory 16-bit PCM WAV additive synthesis
 │   ├── constants/
-│   │   └── piano_notes.dart           # Frequencies, MIDI numbers, note mappings (C3 - B5) & magic scale masks
+│   │   └── piano_notes.dart           # 4x5 isomorphic pad note definitions & Solfège mapping
+│   ├── lessons/
+│   │   └── tutorial_lessons.dart      # Interactive song lessons for Teach mode
 │   └── theme/
-│       ├── app_colors.dart            # M3 Expressive tonal containers, key materials & glow accents
-│       └── app_theme.dart             # Dark minimalist theme configurations
+│       ├── app_colors.dart            # Unified 3D Candy & Pastel color tokens
+│       └── app_theme.dart             # Material 3 light/pastel Candy theme
 ├── models/
-│   └── key_note.dart                  # Immutable value model (pitch, accidental, geometry metadata)
+│   └── key_note.dart                  # Immutable musical note model (pitch, octave, MIDI, frequency)
 ├── state/
-│   └── keyboard_controller.dart       # State holder for layout cache, octaves, presets, pedal & pointer routing
+│   └── keyboard_controller.dart       # State management for pads, audio routing, lessons, and stats
 └── presentation/
     ├── screens/
-    │   └── piano_screen.dart          # Single-screen landscape scaffold
+    │   └── piano_screen.dart          # Primary Candy game screen scaffold
     └── widgets/
-        ├── top_bar.dart               # M3 Expressive floating pill control deck
-        ├── piano_keyboard.dart        # Zero-allocation multi-touch Listener with velocity estimation
-        ├── white_key.dart             # Tactile ivory felt key with 3D front lip & key travel physics
-        └── black_key.dart             # Elevated matte-black sharp key with dual bevels & cyan under-glow
+        ├── candy_bottom_bar.dart      # 3D PLAY, SONGS, STORE pill buttons & modal sheets
+        ├── candy_decorations.dart     # Pastel mint background painter & 3D rainbow logo
+        ├── candy_header.dart          # 3D Lives, Score & Settings header deck
+        ├── candy_pad_style.dart       # 4x5 Candy pad color palettes & note icon layout
+        ├── isomorphic_pad.dart        # 3D glossy Candy pad with debossed note painter
+        └── isomorphic_pad_grid.dart   # 3D Lavender tray frame with Level badge
 ```
 
 ---
@@ -92,29 +103,18 @@ lib/
    flutter analyze
    ```
 
-4. **Run unit & multi-touch test suites**:
+4. **Run unit tests**:
    ```bash
    flutter test
    ```
 
-5. **Build and install on Android**:
+5. **Run on connected Android device**:
    ```bash
-   flutter build apk --release
-   flutter install -d <device-id>
+   flutter run
    ```
-
----
-
-## 🧪 Testing
-
-The automated test suite covers scale generation, octave transposition, zero-allocation layout caching, sustain pedal damping, velocity handling, and multi-touch pointer tracking:
-
-```bash
-flutter test test/widget_test.dart
-```
 
 ---
 
 ## 📄 License
 
-This project is open-source under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).

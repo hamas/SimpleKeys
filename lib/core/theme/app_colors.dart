@@ -1,46 +1,49 @@
 import 'package:flutter/material.dart';
 
-/// Material 3 Expressive color tokens, tonal surface containers, and tactile key materials.
+/// 3D Candy theme color tokens for SimpleKeys.
 abstract final class AppColors {
-  // M3 Expressive Tonal Surfaces
-  static const Color background = Color(0xFF0A0C0F);
-  static const Color surfaceDim = Color(0xFF0F1217);
-  static const Color surface = Color(0xFF14171E);
-  static const Color surfaceContainerLowest = Color(0xFF0A0C10);
-  static const Color surfaceContainerLow = Color(0xFF181D26);
-  static const Color surfaceContainer = Color(0xFF1E232E);
-  static const Color surfaceContainerHigh = Color(0xFF262D3B);
-  static const Color surfaceContainerHighest = Color(0xFF31394A);
-  static const Color surfaceBorder = Color(0xFF2E3646);
-  static const Color surfaceHighlight = Color(0xFF3B4457);
+  // Pastel Mint Candy-Land Background
+  static const Color background = Color(0xFFCEF6EC);
+  static const Color backgroundGradientTop = Color(0xFFCEF6EC);
+  static const Color backgroundGradientBottom = Color(0xFFA5EAD9);
 
-  // M3 Expressive Accents
-  static const Color accentAmber = Color(0xFFF59E0B);
-  static const Color accentCyan = Color(0xFF38BDF8);
-  static const Color accentPurple = Color(0xFFC084FC);
-  static const Color activeGlow = Color(0x3DF59E0B);
-  static const Color magicScaleGlow = Color(0x3D38BDF8);
+  // 3D Lavender Board Tray
+  static const Color trayBackground = Color(0xFFD6CAF5);
+  static const Color trayBorder = Color(0xFFB8A4EA);
+  static const Color trayBevel = Color(0xFF8F76CD);
 
-  // Tactile Piano White Keys (Warm Ivory / Felt)
-  static const Color whiteKeyTopGrad = Color(0xFFFBF8F3);
-  static const Color whiteKeyFill = Color(0xFFEDE9E1);
-  static const Color whiteKeyPressed = Color(0xFFDDD5C7);
-  static const Color whiteKeyBorder = Color(0xFFCCC5B8);
-  static const Color whiteKeyFrontLip = Color(0xFFB5ADA0);
-  static const Color whiteKeyDimmed = Color(0xFF42403E);
-  static const Color whiteKeyText = Color(0xFF6B7280);
+  // Candy Hues (Top, Bottom, Rim)
+  static const Color candyPinkTop = Color(0xFFFF5AA8);
+  static const Color candyPinkBottom = Color(0xFFFF2584);
+  static const Color candyPinkRim = Color(0xFFC70058);
 
-  // Tactile Piano Black Keys (Matte Obsidian)
-  static const Color blackKeyTopGrad = Color(0xFF272A33);
-  static const Color blackKeyFill = Color(0xFF16171B);
-  static const Color blackKeyPressed = Color(0xFF2D323E);
-  static const Color blackKeyBorder = Color(0xFF262B36);
-  static const Color blackKeyFrontLip = Color(0xFF0D0E11);
-  static const Color blackKeyDimmed = Color(0xFF101114);
-  static const Color blackKeyText = Color(0xFF94A3B8);
+  static const Color candyBlueTop = Color(0xFF38C8FF);
+  static const Color candyBlueBottom = Color(0xFF0099F8);
+  static const Color candyBlueRim = Color(0xFF006CB7);
+
+  static const Color candyGreenTop = Color(0xFF8CE81E);
+  static const Color candyGreenBottom = Color(0xFF64D200);
+  static const Color candyGreenRim = Color(0xFF408A00);
+
+  static const Color candyYellowTop = Color(0xFFFFD533);
+  static const Color candyYellowBottom = Color(0xFFFFB300);
+  static const Color candyYellowRim = Color(0xFFC67700);
+
+  // Bottom Buttons
+  static const Color buttonPlayTop = Color(0xFFFF6987);
+  static const Color buttonPlayBottom = Color(0xFFFF3366);
+  static const Color buttonPlayBevel = Color(0xFFC2185B);
+
+  static const Color buttonSongsTop = Color(0xFF38D3FF);
+  static const Color buttonSongsBottom = Color(0xFF00A2F3);
+  static const Color buttonSongsBevel = Color(0xFF006CB7);
+
+  static const Color buttonStoreTop = Color(0xFFCE93D8);
+  static const Color buttonStoreBottom = Color(0xFFAB47BC);
+  static const Color buttonStoreBevel = Color(0xFF7B1FA2);
 
   // Typography
-  static const Color textPrimary = Color(0xFFF8FAFC);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color textMuted = Color(0xFF64748B);
+  static const Color textDark = Color(0xFF263238);
+  static const Color textMuted = Color(0xFF546E7A);
+  static const Color textWhite = Colors.white;
 }

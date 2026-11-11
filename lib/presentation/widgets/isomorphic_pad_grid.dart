@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../state/keyboard_controller.dart';
 import 'isomorphic_pad.dart';
 
-/// 4x4 tactile isomorphic pad grid container encased in a glossy 3D "Candy Crush" game frame.
+/// 4x5 candy jelly tray with "Level 1" top badge and 3D rounded pastel frame.
 class IsomorphicPadGrid extends StatelessWidget {
   final KeyboardController controller;
 
@@ -26,134 +26,131 @@ class IsomorphicPadGrid extends StatelessWidget {
         }
 
         const double outerMarginH = 14.0;
-        const double outerMarginV = 6.0;
+        const double trayPadding = 10.0;
+        const double gutter = 9.0;
 
-        // Tray inner dimensions
         final double trayWidth = totalWidth - (outerMarginH * 2);
-        final double trayHeight = totalHeight - (outerMarginV * 2);
+        final double availableWidthForPads = trayWidth - (trayPadding * 2) - (gutter * 3);
+        final double padSide = availableWidthForPads / 4;
 
-        const double trayPaddingH = 10.0;
-        const double trayPaddingTop = 18.0;
-        const double trayPaddingBottom = 10.0;
-        const double spacing = 9.0;
+        // Height for 5 rows of pads
+        final double trayContentHeight = (padSide * 5) + (gutter * 4) + (trayPadding * 2);
 
-        final double netWidth = trayWidth - (trayPaddingH * 2) - (spacing * 3);
-        final double netHeight = trayHeight - trayPaddingTop - trayPaddingBottom - (spacing * 3);
-
-        final double padWidth = netWidth / 4;
-        final double padHeight = netHeight / 4;
-        final double childAspectRatio = (padWidth / padHeight).clamp(0.4, 2.0);
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: outerMarginH,
-            vertical: outerMarginV,
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // 1. 3D Pastel Lilac Candy Tray / Game Board Frame
-              Container(
-                width: trayWidth,
-                height: trayHeight,
-                padding: const EdgeInsets.fromLTRB(
-                  trayPaddingH,
-                  trayPaddingTop,
-                  trayPaddingH,
-                  trayPaddingBottom,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF).withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: const Color(0xFFD8B4FE),
-                    width: 4.5,
-                  ),
-                  boxShadow: [
-                    // Chunky 3D tray bottom shadow
-                    BoxShadow(
-                      color: const Color(0xFF9333EA).withValues(alpha: 0.25),
-                      offset: const Offset(0, 7),
-                      blurRadius: 14,
-                    ),
-                    const BoxShadow(
-                      color: Colors.white,
-                      offset: Offset(0, -2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: spacing,
-                    crossAxisSpacing: spacing,
-                    childAspectRatio: childAspectRatio,
-                  ),
-                  itemCount: notes.length,
-                  itemBuilder: (context, index) {
-                    final note = notes[index];
-                    final rowIndex = index ~/ 4; // 0 = Row 4 (Top Pink), 1 = Blue, 2 = Mint, 3 = Mango
-                    return IsomorphicPad(
-                      key: ValueKey('candy_pad_${note.midiNumber}_$index'),
-                      note: note,
-                      controller: controller,
-                      rowIndex: rowIndex,
-                    );
-                  },
-                ),
-              ),
-
-              // 2. Cute Header Pill Badge (Matching the "Level 1" banner)
-              Positioned(
-                top: -11,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFFA855F7), Color(0xFF7E22CE)],
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF7E22CE).withValues(alpha: 0.4),
-                          offset: const Offset(0, 3),
-                          blurRadius: 6,
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: outerMarginH),
+            child: SizedBox(
+              width: trayWidth,
+              height: trayContentHeight + 14, // extra clearance for top badge
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  // 1. The Main Candy Tray Frame
+                  Positioned(
+                    top: 12,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(trayPadding),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD6CAF5),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: const Color(0xFFB8A4EA),
+                          width: 4.0,
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.music_note_rounded,
-                          size: 13,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'CANDY PADS 4x4',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 0.6,
+                        boxShadow: const [
+                          // 3D bottom bevel rim
+                          BoxShadow(
+                            color: Color(0xFF8F76CD),
+                            offset: Offset(0, 6),
+                            blurRadius: 0,
                           ),
+                          // Soft drop shadow
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            offset: Offset(0, 8),
+                            blurRadius: 14,
+                          ),
+                        ],
+                      ),
+                      child: GridView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.zero,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          mainAxisSpacing: gutter,
+                          crossAxisSpacing: gutter,
+                          childAspectRatio: 1.0,
                         ),
-                      ],
+                        itemCount: notes.length,
+                        itemBuilder: (context, index) {
+                          final note = notes[index];
+                          return IsomorphicPad(
+                            key: ValueKey('candy_pad_${note.midiNumber}_$index'),
+                            note: note,
+                            controller: controller,
+                            index: index,
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
+
+                  // 2. "Level 1" Top Center Tab Badge
+                  Positioned(
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFFBA68C8),
+                            Color(0xFF8E24AA),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFE1BEE7),
+                          width: 2.2,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0xFF6A1B9A),
+                            offset: Offset(0, 3),
+                            blurRadius: 0,
+                          ),
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            offset: Offset(0, 4),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'Level ${controller.level}',
+                        style: GoogleFonts.sniglet(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x66000000),
+                              offset: Offset(0, 1.5),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },

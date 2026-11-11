@@ -1,225 +1,163 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:simplekeys/core/constants/chord_detector.dart';
+import 'package:simplekeys/core/audio/sound_presets.dart';
 import 'package:simplekeys/core/constants/piano_notes.dart';
+import 'package:simplekeys/presentation/widgets/candy_pad_style.dart';
 import 'package:simplekeys/state/keyboard_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('4x4 Isomorphic Pad Grid Geometry & Note Mapping', () {
-    test('generateIsomorphicGridNotes generates exactly 16 notes arranged in 4 rows', () {
-      final notes = PianoNotes.generateIsomorphicGridNotes(baseOctave: 3);
-      expect(notes.length, 16);
+  group('4x5 Isomorphic Pad Grid Geometry & Note Mapping', () {
+    test('generateIsomorphicGridNotes generates exactly 20 notes arranged in 5 rows', () {
+      final notes20 = PianoNotes.generateIsomorphicGridNotes(baseOctave: 3, rows: 5);
+      expect(notes20.length, 20);
 
-      // Row 4 (Top): A4, B4, C5, D5 (indices 0..3)
-      expect(notes[0].label, 'A4');
-      expect(notes[1].label, 'B4');
-      expect(notes[2].label, 'C5');
-      expect(notes[3].label, 'D5');
+      // Row 5 (Top): E5, F5, G5, A5 (indices 0..3)
+      expect(notes20[0].label, 'E5');
+      expect(notes20[1].label, 'F5');
+      expect(notes20[2].label, 'G5');
+      expect(notes20[3].label, 'A5');
 
-      // Row 3: D4, E4, F4, G4 (indices 4..7)
-      expect(notes[4].label, 'D4');
-      expect(notes[5].label, 'E4');
-      expect(notes[6].label, 'F4');
-      expect(notes[7].label, 'G4');
+      // Row 4: A4, B4, C5, D5 (indices 4..7)
+      expect(notes20[4].label, 'A4');
+      expect(notes20[5].label, 'B4');
+      expect(notes20[6].label, 'C5');
+      expect(notes20[7].label, 'D5');
 
-      // Row 2: G3, A3, B3, C4 (indices 8..11)
-      expect(notes[8].label, 'G3');
-      expect(notes[9].label, 'A3');
-      expect(notes[10].label, 'B3');
-      expect(notes[11].label, 'C4');
+      // Row 3: D4, E4, F4, G4 (indices 8..11)
+      expect(notes20[8].label, 'D4');
+      expect(notes20[9].label, 'E4');
+      expect(notes20[10].label, 'F4');
+      expect(notes20[11].label, 'G4');
 
-      // Row 1 (Bottom): C3, D3, E3, F3 (indices 12..15)
-      expect(notes[12].label, 'C3');
-      expect(notes[13].label, 'D3');
-      expect(notes[14].label, 'E3');
-      expect(notes[15].label, 'F3');
-    });
+      // Row 2: G3, A3, B3, C4 (indices 12..15)
+      expect(notes20[12].label, 'G3');
+      expect(notes20[13].label, 'A3');
+      expect(notes20[14].label, 'B3');
+      expect(notes20[15].label, 'C4');
 
-    test('Root notes (all "C"s) are identified accurately as anchors', () {
-      final notes = PianoNotes.generateIsomorphicGridNotes(baseOctave: 3);
-      final cNotes = notes.where((n) => n.name == 'C').toList();
-
-      expect(cNotes.length, 3);
-      expect(cNotes.map((n) => n.label).toList(), containsAll(['C3', 'C4', 'C5']));
+      // Row 1 (Bottom): C3, D3, E3, F3 (indices 16..19)
+      expect(notes20[16].label, 'C3');
+      expect(notes20[17].label, 'D3');
+      expect(notes20[18].label, 'E3');
+      expect(notes20[19].label, 'F3');
     });
 
     test('Base octave shift correctly updates isomorphic pad pitch frequencies', () {
-      final notesOctave2 = PianoNotes.generateIsomorphicGridNotes(baseOctave: 2);
-      final notesOctave4 = PianoNotes.generateIsomorphicGridNotes(baseOctave: 4);
+      final notesOctave2 = PianoNotes.generateIsomorphicGridNotes(baseOctave: 2, rows: 5);
+      final notesOctave4 = PianoNotes.generateIsomorphicGridNotes(baseOctave: 4, rows: 5);
 
-      // Row 1 start note shifts from C2 to C4
-      expect(notesOctave2[12].label, 'C2');
-      expect(notesOctave4[12].label, 'C4');
-      expect(notesOctave4[12].midiNumber - notesOctave2[12].midiNumber, 24); // 2 octaves = 24 semitones
+      expect(notesOctave2[16].label, 'C2');
+      expect(notesOctave4[16].label, 'C4');
+      expect(notesOctave4[16].midiNumber - notesOctave2[16].midiNumber, 24);
+    });
+
+    test('CandyPadLayout static pattern provides 20 distinct color and note icon styles', () {
+      expect(CandyPadLayout.layout20.length, 20);
+
+      // Verify row 0 top edge
+      final pad0 = CandyPadLayout.getPadStyle(0);
+      expect(pad0.$1, CandyColor.pink);
+      expect(pad0.$2, NoteIconType.double);
+
+      final pad1 = CandyPadLayout.getPadStyle(1);
+      expect(pad1.$1, CandyColor.blue);
+      expect(pad1.$2, NoteIconType.double);
     });
   });
 
-  group('PianoNotes & Scales', () {
-    test('generateNotes generates 2 octaves plus ending root C (25 keys total)', () {
-      final notes = PianoNotes.generateNotes(startOctave: 3, octaveCount: 2);
-      expect(notes.length, 25);
-
-      final whiteNotes = notes.where((n) => !n.isAccidental).toList();
-      final blackNotes = notes.where((n) => n.isAccidental).toList();
-
-      expect(whiteNotes.length, 15); // 7 * 2 + 1 ending C
-      expect(blackNotes.length, 10); // 5 * 2
-      expect(notes.first.label, 'C3');
-      expect(notes.last.label, 'C5');
-    });
-
-    test('generateNotes generates 1 octave plus ending root C (13 keys total for portrait)', () {
-      final notes = PianoNotes.generateNotes(startOctave: 3, octaveCount: 1);
-      expect(notes.length, 13);
-
-      final whiteNotes = notes.where((n) => !n.isAccidental).toList();
-      final blackNotes = notes.where((n) => n.isAccidental).toList();
-
-      expect(whiteNotes.length, 8); // 7 + 1 ending C
-      expect(blackNotes.length, 5);
-      expect(notes.first.label, 'C3');
-      expect(notes.last.label, 'C4');
-    });
-
-    test('isInMagicScale filters out dissonant semitones (F and B in C Major Pentatonic)', () {
-      final notes = PianoNotes.generateNotes(startOctave: 4, octaveCount: 1, includeEndingRoot: false);
-      final c4 = notes.firstWhere((n) => n.name == 'C');
-      final d4 = notes.firstWhere((n) => n.name == 'D');
-      final e4 = notes.firstWhere((n) => n.name == 'E');
-      final f4 = notes.firstWhere((n) => n.name == 'F');
-      final g4 = notes.firstWhere((n) => n.name == 'G');
-      final a4 = notes.firstWhere((n) => n.name == 'A');
-      final b4 = notes.firstWhere((n) => n.name == 'B');
-
-      expect(PianoNotes.isInMagicScale(c4), isTrue);
-      expect(PianoNotes.isInMagicScale(d4), isTrue);
-      expect(PianoNotes.isInMagicScale(e4), isTrue);
-      expect(PianoNotes.isInMagicScale(f4), isFalse); // Dissonant half-step omitted
-      expect(PianoNotes.isInMagicScale(g4), isTrue);
-      expect(PianoNotes.isInMagicScale(a4), isTrue);
-      expect(PianoNotes.isInMagicScale(b4), isFalse); // Leading tone half-step omitted
-    });
-  });
-
-  group('ChordDetector', () {
-    test('detects single note, intervals, and triads accurately', () {
-      expect(ChordDetector.detectChord({}), 'Tap or slide keys');
-      expect(ChordDetector.detectChord({60}), 'C4'); // Middle C
-      expect(ChordDetector.detectChord({60, 67}), 'C + G • Perfect 5th');
-      expect(ChordDetector.detectChord({60, 64, 67}), 'C Major'); // C-E-G
-      expect(ChordDetector.detectChord({57, 60, 64}), 'A Minor'); // A-C-E
-    });
-  });
-
-  group('KeyboardLayout Zero-Allocation Cache', () {
-    test('Layout precomputes immutable white and black note lists for pianoKeys mode', () {
+  group('Modes System: Play vs Teach Mode', () {
+    test('Defaults to Play mode and toggles to Teach mode', () {
       final controller = KeyboardController();
-      controller.setKeyboardMode(KeyboardMode.pianoKeys);
+      expect(controller.appMode, AppMode.play);
 
-      // Default is 2 octaves (15 white keys, 10 black keys)
-      expect(controller.layout.whiteNotes.length, 15);
-      expect(controller.layout.blackNotes.length, 10);
-      expect(controller.layout.blackToPrecedingWhiteIndex.length, 10);
+      controller.toggleAppMode();
+      expect(controller.appMode, AppMode.teach);
 
-      // Can switch to 1 octave
-      controller.setOctaveSpan(1);
-      expect(controller.layout.whiteNotes.length, 8);
-      expect(controller.layout.blackNotes.length, 5);
-
-      // Verify that C#3 (first black key) maps to C3 (white key index 0)
-      final cSharp3 = controller.layout.blackNotes.first;
-      expect(cSharp3.name, 'C#');
-      expect(controller.layout.blackToPrecedingWhiteIndex[cSharp3], 0);
-    });
-  });
-
-  group('KeyboardController State & Multi-Touch', () {
-    test('Defaults to isomorphic pad grid mode with 16 notes', () {
-      final controller = KeyboardController();
-      expect(controller.keyboardMode, KeyboardMode.isomorphicGrid);
-      expect(controller.notes.length, 16);
-      expect(controller.octaveRangeLabel, 'C3 – D5');
+      controller.toggleAppMode();
+      expect(controller.appMode, AppMode.play);
     });
 
-    test('Octave shift changes visible notes and updates layout', () {
+    test('Teach Mode identifies target note and advances only on correct key hit', () {
       final controller = KeyboardController();
-      expect(controller.baseOctave, 3);
-      expect(controller.octaveRangeLabel, 'C3 – D5');
+      controller.setAppMode(AppMode.teach);
 
-      controller.shiftOctaveUp();
-      expect(controller.baseOctave, 4);
-      expect(controller.octaveRangeLabel, 'C4 – D6');
+      // Initial lesson is C Major Scale, first step is C
+      expect(controller.currentLesson.title, 'C Major Scale');
+      expect(controller.lessonStepIndex, 0);
+      expect(controller.currentTargetStep?.noteName, 'C');
 
-      controller.shiftOctaveDown();
-      expect(controller.baseOctave, 3);
-      expect(controller.octaveRangeLabel, 'C3 – D5');
-    });
+      final cNote = controller.isomorphicNotes.firstWhere((n) => n.name == 'C');
+      final dNote = controller.isomorphicNotes.firstWhere((n) => n.name == 'D');
 
-    test('Pointer down, move, and up tracks pressed MIDI notes and updates active chord', () {
-      final controller = KeyboardController();
-      // In 4x4 isomorphic grid, C3 is note at index 12, G3 is note at index 8
-      final c3 = controller.notes.firstWhere((n) => n.label == 'C3');
-      final g3 = controller.notes.firstWhere((n) => n.label == 'G3');
+      expect(controller.isNoteTargetedInTeach(cNote), isTrue);
+      expect(controller.isNoteTargetedInTeach(dNote), isFalse);
 
-      // Pointer 1 strikes C3 with velocity
-      controller.handlePointerDown(1, c3, velocity: 0.85);
-      expect(controller.pressedMidiNotes.contains(c3.midiNumber), isTrue);
-      expect(controller.activeChord, 'C3');
+      final initialScore = controller.score;
+      final initialLives = controller.lives;
 
-      // Pointer 2 strikes G3 simultaneously (multi-touch 5th interval)
-      controller.handlePointerDown(2, g3, velocity: 0.95);
-      expect(controller.pressedMidiNotes.contains(c3.midiNumber), isTrue);
-      expect(controller.pressedMidiNotes.contains(g3.midiNumber), isTrue);
-      expect(controller.activeChord, contains('Perfect 5th'));
-
-      // Pointer 1 lifts
+      // Striking wrong note does NOT advance sequencer and reduces lives
+      controller.handlePointerDown(1, dNote);
       controller.handlePointerUp(1);
-      expect(controller.pressedMidiNotes.contains(c3.midiNumber), isFalse);
-      expect(controller.pressedMidiNotes.contains(g3.midiNumber), isTrue);
+      expect(controller.lessonStepIndex, 0);
+      expect(controller.lives, initialLives - 1);
 
-      // Pointer 2 lifts
+      // Striking correct note (C) advances to step 1 (D) and adds 100 points
+      controller.handlePointerDown(2, cNote);
       controller.handlePointerUp(2);
-      expect(controller.pressedMidiNotes.isEmpty, isTrue);
-      expect(controller.activeChord, 'Tap or slide keys');
+      expect(controller.lessonStepIndex, 1);
+      expect(controller.currentTargetStep?.noteName, 'D');
+      expect(controller.isNoteTargetedInTeach(dNote), isTrue);
+      expect(controller.score, initialScore + 100);
+    });
+  });
+
+  group('Game Stats & Formatting', () {
+    test('formattedScore formats numbers with leading zeros and comma', () {
+      final controller = KeyboardController();
+      expect(controller.formattedScore, '02,840');
+
+      controller.addScore(100);
+      expect(controller.formattedScore, '02,940');
     });
 
-    test('Sustain pedal toggle updates mode', () {
+    test('Level progression', () {
+      final controller = KeyboardController();
+      expect(controller.level, 1);
+      controller.nextLevel();
+      expect(controller.level, 2);
+    });
+  });
+
+  group('Utility States: Notation, Sustain, Sound Presets', () {
+    test('ABC vs DoReMi notation formatting', () {
+      final controller = KeyboardController();
+      final c3 = controller.isomorphicNotes.firstWhere((n) => n.label == 'C3');
+
+      expect(controller.notation, NoteNotation.scientific);
+      expect(controller.getFormattedNoteLabel(c3), 'C3');
+
+      controller.toggleNotation();
+      expect(controller.notation, NoteNotation.solfege);
+      expect(controller.getFormattedNoteLabel(c3), 'Do3');
+    });
+
+    test('Sustain toggle', () {
       final controller = KeyboardController();
       expect(controller.isSustainEnabled, isTrue);
-
       controller.toggleSustain();
       expect(controller.isSustainEnabled, isFalse);
-
-      controller.toggleSustain();
-      expect(controller.isSustainEnabled, isTrue);
     });
 
-    test('Magic Scale disables discordant notes from being struck', () {
+    test('Sound preset switching', () {
       final controller = KeyboardController();
-      controller.toggleMagicScale();
-      expect(controller.isMagicScale, isTrue);
+      expect(controller.soundPreset, SoundBankType.feltPiano);
 
-      final fNote = controller.notes.firstWhere((n) => n.name == 'F');
-      expect(controller.isNotePlayable(fNote), isFalse);
+      controller.setSoundPreset(SoundBankType.musicBox);
+      expect(controller.soundPreset, SoundBankType.musicBox);
 
-      controller.handlePointerDown(1, fNote);
-      expect(controller.pressedMidiNotes.contains(fNote.midiNumber), isFalse);
-    });
-
-    test('Switching keyboard mode toggles between grid and piano keys', () {
-      final controller = KeyboardController();
-      expect(controller.keyboardMode, KeyboardMode.isomorphicGrid);
-      expect(controller.notes.length, 16);
-
-      controller.toggleKeyboardMode();
-      expect(controller.keyboardMode, KeyboardMode.pianoKeys);
-      expect(controller.notes.length, 25);
-      expect(controller.octaveRangeLabel, 'C3 – C5');
-
-      controller.toggleKeyboardMode();
-      expect(controller.keyboardMode, KeyboardMode.isomorphicGrid);
-      expect(controller.notes.length, 16);
+      controller.setSoundPreset(SoundBankType.dreamPad);
+      expect(controller.soundPreset, SoundBankType.dreamPad);
     });
   });
 }

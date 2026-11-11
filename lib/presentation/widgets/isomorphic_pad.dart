@@ -1,127 +1,44 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 import '../../models/key_note.dart';
 import '../../state/keyboard_controller.dart';
+import 'candy_pad_style.dart';
 
-/// Candy Crush 3D glossy color theme tokens.
-class CandyColorTheme {
-  final Color primary;
-  final Color highlight;
-  final Color deepShadow;
-  final Color specular;
-  final Color textShadow;
-
-  const CandyColorTheme({
-    required this.primary,
-    required this.highlight,
-    required this.deepShadow,
-    required this.specular,
-    required this.textShadow,
-  });
-
-  /// Row 4 (Top): Bubblegum Pink (#FF3385)
-  static const bubblegumPink = CandyColorTheme(
-    primary: Color(0xFFFF3385),
-    highlight: Color(0xFFFF80B5),
-    deepShadow: Color(0xFFC2185B),
-    specular: Color(0xFFFFE4EF),
-    textShadow: Color(0xFF880E4F),
-  );
-
-  /// Row 3: Jelly Blue (#00B0FF)
-  static const jellyBlue = CandyColorTheme(
-    primary: Color(0xFF00B0FF),
-    highlight: Color(0xFF80D8FF),
-    deepShadow: Color(0xFF0077C2),
-    specular: Color(0xFFE1F5FE),
-    textShadow: Color(0xFF01579B),
-  );
-
-  /// Row 2: Bright Mint (#00E676)
-  static const brightMint = CandyColorTheme(
-    primary: Color(0xFF00E676),
-    highlight: Color(0xFF69F0AE),
-    deepShadow: Color(0xFF009624),
-    specular: Color(0xFFE8F5E9),
-    textShadow: Color(0xFF1B5E20),
-  );
-
-  /// Row 1 (Bottom): Mango Yellow (#FFC700)
-  static const mangoYellow = CandyColorTheme(
-    primary: Color(0xFFFFC700),
-    highlight: Color(0xFFFFE082),
-    deepShadow: Color(0xFFD98E00),
-    specular: Color(0xFFFFF9C4),
-    textShadow: Color(0xFFB45309),
-  );
-
-  /// Royal Golden Sugar Anchor (All 'C' Root notes: C3, C4, C5)
-  static const goldenAnchor = CandyColorTheme(
-    primary: Color(0xFFFFB300),
-    highlight: Color(0xFFFFE57F),
-    deepShadow: Color(0xFFB27B00),
-    specular: Color(0xFFFFFDE7),
-    textShadow: Color(0xFF92400E),
-  );
-
-  /// Dimmed Inactive State (Magic Scale non-pentatonic filter)
-  static const dimmed = CandyColorTheme(
-    primary: Color(0xFFD1D5DB),
-    highlight: Color(0xFFE5E7EB),
-    deepShadow: Color(0xFF9CA3AF),
-    specular: Color(0xFFF3F4F6),
-    textShadow: Color(0xFF6B7280),
-  );
-}
-
-/// 3D, glossy, tactile "Candy Crush" isomorphic pad with squish physics,
-/// radial pillowy gradient, curved specular highlights, and debossed musical engraving.
+/// 3D tactile "Candy Jelly" pad matching the Candy Crush aesthetic.
+/// Features a glossy pillowy shell, debossed musical notes (♪ and ♫),
+/// physical 3D key travel, and low-latency audio FFI triggering.
 class IsomorphicPad extends StatelessWidget {
   final KeyNote note;
   final KeyboardController controller;
-  final int rowIndex;
+  final int index;
 
   const IsomorphicPad({
     super.key,
     required this.note,
     required this.controller,
-    this.rowIndex = 0,
+    required this.index,
   });
-
-  bool get isRoot => note.name == 'C';
-
-  CandyColorTheme _resolveTheme(bool isPlayable) {
-    if (!isPlayable) return CandyColorTheme.dimmed;
-    if (isRoot) return CandyColorTheme.goldenAnchor;
-
-    switch (rowIndex) {
-      case 0:
-        return CandyColorTheme.bubblegumPink;
-      case 1:
-        return CandyColorTheme.jellyBlue;
-      case 2:
-        return CandyColorTheme.brightMint;
-      case 3:
-      default:
-        return CandyColorTheme.mangoYellow;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final isPressed = controller.pressedMidiNotes.contains(note.midiNumber);
     final isPlayable = controller.isNotePlayable(note);
-    final theme = _resolveTheme(isPlayable);
     final bool isDimmed = !isPlayable;
+    final bool isTeachTarget = controller.isNoteTargetedInTeach(note);
 
-    // Physical 3D squish offsets (5dp downward translation on press)
-    final double topOffset = isPressed ? 5.0 : 0.0;
-    final double bottomMargin = isPressed ? 2.0 : 7.0;
+    final padStyle = CandyPadLayout.getPadStyle(index);
+    final palette = CandyPalette.fromColor(padStyle.$1);
+    final iconType = padStyle.$2;
+
+    // 3D physical compression
+    final double rimDepth = isPressed ? 1.5 : 5.5;
 
     return Listener(
       behavior: HitTestBehavior.opaque,
       onPointerDown: (event) {
         if (!isDimmed) {
+          HapticFeedback.lightImpact();
           controller.handlePointerDown(event.pointer, note, velocity: 1.0);
         }
       },
@@ -132,72 +49,70 @@ class IsomorphicPad extends StatelessWidget {
         controller.handlePointerUp(event.pointer);
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 50),
+        duration: const Duration(milliseconds: 45),
         curve: Curves.easeOutQuad,
-        margin: EdgeInsets.only(top: topOffset, bottom: 7.0 - topOffset),
+        transform: Matrix4.translationValues(0, isPressed ? 4.0 : 0.0, 0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          // Chunky, raised plastic/jelly 3D bottom shadow
           boxShadow: [
-            // Solid candy base extrusion
+            // Solid 3D bottom bevel rim
             BoxShadow(
-              color: isDimmed ? Colors.black26 : theme.deepShadow,
-              offset: Offset(0, bottomMargin),
-              blurRadius: isPressed ? 1.5 : 0.0,
+              color: isDimmed ? const Color(0xFF616161) : palette.bottomRim,
+              offset: Offset(0, rimDepth),
+              blurRadius: 0.0,
             ),
-            // Ambient soft table drop shadow
+            // Soft ambient drop shadow under the block
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              offset: Offset(0, bottomMargin + 3),
-              blurRadius: isPressed ? 4.0 : 8.0,
+              color: Colors.black.withValues(alpha: isPressed ? 0.15 : 0.28),
+              offset: Offset(0, rimDepth + 3),
+              blurRadius: isPressed ? 2.0 : 6.0,
             ),
-            // Pressed radiant neon splash glow
-            if (isPressed && !isDimmed)
-              BoxShadow(
-                color: theme.primary.withValues(alpha: 0.75),
-                blurRadius: 18.0,
-                spreadRadius: 2.0,
-                offset: const Offset(0, 2),
+            // Teach mode golden sparkle focus glow
+            if (isTeachTarget)
+              const BoxShadow(
+                color: Color(0xFFFFD54F),
+                blurRadius: 14,
+                spreadRadius: 3,
               ),
           ],
-          // Pillowy 3D radial gradient (lighter highlight in the upper center, richer tone toward edges)
-          gradient: RadialGradient(
-            center: const Alignment(-0.25, -0.45),
-            radius: 0.95,
-            colors: isPressed
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDimmed
                 ? [
-                    Color.lerp(theme.highlight, Colors.white, 0.45)!,
-                    theme.primary,
+                    const Color(0xFF9E9E9E),
+                    const Color(0xFF616161),
                   ]
-                : [
-                    theme.highlight,
-                    theme.primary,
-                  ],
-          ),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: isPressed ? 0.85 : 0.45),
-            width: 1.6,
+                : isPressed
+                    ? [
+                        palette.surfaceBottom,
+                        palette.bottomRim,
+                      ]
+                    : [
+                        palette.surfaceTop,
+                        palette.surfaceBottom,
+                      ],
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(19),
+          borderRadius: BorderRadius.circular(20),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 1. Top glossy specular lens highlight (curved glassy reflection)
+              // 1. Glossy top curved reflection (Candy Pillow Highlight)
               Positioned(
-                top: 4,
-                left: 10,
-                right: 10,
-                height: 16,
+                top: 2,
+                left: 6,
+                right: 6,
+                height: 24,
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.white.withValues(alpha: isPressed ? 0.8 : 0.65),
+                        Colors.white.withValues(alpha: isPressed ? 0.2 : 0.55),
                         Colors.white.withValues(alpha: 0.0),
                       ],
                     ),
@@ -205,137 +120,16 @@ class IsomorphicPad extends StatelessWidget {
                 ),
               ),
 
-              // 2. Secondary soft side sheen (creates 3D pillowy roundness)
-              Positioned(
-                top: 8,
-                left: 6,
-                width: 12,
-                bottom: 14,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.28),
-                        Colors.white.withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // 3. Debossed musical note watermark in background
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Icon(
-                  Icons.music_note_rounded,
-                  size: 26,
-                  color: isDimmed
-                      ? Colors.transparent
-                      : theme.textShadow.withValues(alpha: 0.25),
-                ),
-              ),
-
-              // 4. Root Note Anchor Sparkle Star Badge
-              if (isRoot && !isDimmed)
-                Positioned(
-                  top: 7,
-                  right: 7,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1.5),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          size: 11,
-                          color: Color(0xFFD97706),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          'ROOT',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFFB45309),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // 5. Chunky, friendly rounded typography with soft 3D drop shadow
+              // 2. Debossed Musical Note (matching the mockup pure aesthetic)
               Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      note.label,
-                      style: GoogleFonts.fredoka(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: isDimmed
-                            ? const Color(0xFF6B7280)
-                            : Colors.white,
-                        shadows: [
-                          if (!isDimmed) ...[
-                            Shadow(
-                              color: theme.textShadow,
-                              offset: const Offset(0, 2.5),
-                              blurRadius: 1.0,
-                            ),
-                            Shadow(
-                              color: theme.textShadow.withValues(alpha: 0.8),
-                              offset: const Offset(0, 1.2),
-                              blurRadius: 0.5,
-                            ),
-                            Shadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              offset: const Offset(0, 4.0),
-                              blurRadius: 3.0,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    // Small candy frequency capsule
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: isDimmed
-                            ? Colors.black.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.22),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${note.frequency.toStringAsFixed(0)} Hz',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: isDimmed
-                              ? const Color(0xFF6B7280)
-                              : Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: CustomPaint(
+                  size: const Size(44, 42),
+                  painter: DebossedMusicNotePainter(
+                    iconType: iconType,
+                    shadowColor: palette.debossShadow,
+                    highlightColor: palette.debossHighlight,
+                    isPressed: isPressed,
+                  ),
                 ),
               ),
             ],
@@ -343,5 +137,168 @@ class IsomorphicPad extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Custom painter rendering debossed musical notes (single ♪ or double ♫)
+/// carved into the candy surface.
+class DebossedMusicNotePainter extends CustomPainter {
+  final NoteIconType iconType;
+  final Color shadowColor;
+  final Color highlightColor;
+  final bool isPressed;
+
+  DebossedMusicNotePainter({
+    required this.iconType,
+    required this.shadowColor,
+    required this.highlightColor,
+    required this.isPressed,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double w = size.width;
+    final double h = size.height;
+
+    final shadowPaint = Paint()
+      ..color = shadowColor
+      ..style = PaintingStyle.fill;
+
+    final highlightPaint = Paint()
+      ..color = highlightColor.withValues(alpha: 0.7)
+      ..style = PaintingStyle.fill;
+
+    if (iconType == NoteIconType.single) {
+      _drawSingleNote(canvas, w, h, highlightPaint, const Offset(0, 1.2));
+      _drawSingleNote(canvas, w, h, shadowPaint, Offset.zero);
+    } else {
+      _drawDoubleNote(canvas, w, h, highlightPaint, const Offset(0, 1.2));
+      _drawDoubleNote(canvas, w, h, shadowPaint, Offset.zero);
+    }
+  }
+
+  void _drawSingleNote(
+    Canvas canvas,
+    double w,
+    double h,
+    Paint paint,
+    Offset offset,
+  ) {
+    canvas.save();
+    canvas.translate(offset.dx, offset.dy);
+
+    // Note head (oval angled at -25 degrees)
+    final headCenter = Offset(w * 0.36, h * 0.72);
+    canvas.save();
+    canvas.translate(headCenter.dx, headCenter.dy);
+    canvas.rotate(-22 * math.pi / 180);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.42, height: h * 0.32),
+      paint,
+    );
+    canvas.restore();
+
+    // Stem
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.50, h * 0.16, w * 0.13, h * 0.60),
+        const Radius.circular(2.5),
+      ),
+      paint,
+    );
+
+    // Flag
+    final flagPath = Path()
+      ..moveTo(w * 0.62, h * 0.16)
+      ..cubicTo(
+        w * 0.95,
+        h * 0.28,
+        w * 0.88,
+        h * 0.52,
+        w * 0.68,
+        h * 0.60,
+      )
+      ..cubicTo(
+        w * 0.76,
+        h * 0.44,
+        w * 0.78,
+        h * 0.28,
+        w * 0.62,
+        h * 0.26,
+      )
+      ..close();
+    canvas.drawPath(flagPath, paint);
+
+    canvas.restore();
+  }
+
+  void _drawDoubleNote(
+    Canvas canvas,
+    double w,
+    double h,
+    Paint paint,
+    Offset offset,
+  ) {
+    canvas.save();
+    canvas.translate(offset.dx, offset.dy);
+
+    // Left note head
+    final leftCenter = Offset(w * 0.26, h * 0.74);
+    canvas.save();
+    canvas.translate(leftCenter.dx, leftCenter.dy);
+    canvas.rotate(-22 * math.pi / 180);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.36, height: h * 0.28),
+      paint,
+    );
+    canvas.restore();
+
+    // Right note head
+    final rightCenter = Offset(w * 0.68, h * 0.64);
+    canvas.save();
+    canvas.translate(rightCenter.dx, rightCenter.dy);
+    canvas.rotate(-22 * math.pi / 180);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.36, height: h * 0.28),
+      paint,
+    );
+    canvas.restore();
+
+    // Left stem
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.37, h * 0.24, w * 0.11, h * 0.54),
+        const Radius.circular(2),
+      ),
+      paint,
+    );
+
+    // Right stem
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.79, h * 0.14, w * 0.11, h * 0.54),
+        const Radius.circular(2),
+      ),
+      paint,
+    );
+
+    // Top connecting beam
+    final beamPath = Path()
+      ..moveTo(w * 0.37, h * 0.32)
+      ..lineTo(w * 0.90, h * 0.22)
+      ..lineTo(w * 0.90, h * 0.12)
+      ..lineTo(w * 0.37, h * 0.22)
+      ..close();
+    canvas.drawPath(beamPath, paint);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant DebossedMusicNotePainter oldDelegate) {
+    return oldDelegate.iconType != iconType ||
+        oldDelegate.shadowColor != shadowColor ||
+        oldDelegate.highlightColor != highlightColor ||
+        oldDelegate.isPressed != isPressed;
   }
 }

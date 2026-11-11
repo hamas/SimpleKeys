@@ -24,7 +24,7 @@ abstract final class SoundPresets {
     final int totalSamples = (durationSeconds * sampleRate).toInt();
     final ByteData pcmData = ByteData(totalSamples * 2);
 
-    final double twoPi = 2.0 * math.pi;
+    const double twoPi = 2.0 * math.pi;
     final double fundamentalDelta = (twoPi * frequency) / sampleRate;
 
     for (int i = 0; i < totalSamples; i++) {
