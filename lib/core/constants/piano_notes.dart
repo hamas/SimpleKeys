@@ -81,3 +81,4 @@ abstract final class PianoNotes {
     return pentatonicSemitones.contains(relativeSemitone);
   }
 }
+

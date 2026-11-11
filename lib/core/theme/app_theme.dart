@@ -26,3 +26,4 @@ abstract final class AppTheme {
     );
   }
 }
+

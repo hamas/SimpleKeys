@@ -65,3 +65,4 @@ class KeyNote {
   @override
   String toString() => 'KeyNote($label, midi: $midiNumber, freq: ${frequency.toStringAsFixed(1)}Hz)';
 }
+
