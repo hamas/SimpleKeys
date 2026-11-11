@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/audio/sound_presets.dart';
 import '../../state/keyboard_controller.dart';
 
-/// Authentic Material 3 Expressive control deck with responsive portrait and landscape layouts.
+/// Clean, comfortable Material 3 control deck with properly sized buttons and readable typography.
 class TopBar extends StatelessWidget {
   final KeyboardController controller;
   final bool isPortrait;
@@ -21,81 +21,82 @@ class TopBar extends StatelessWidget {
     return _buildLandscapeBar(context);
   }
 
-  // --- PORTRAIT MATERIAL 3 EXPRESSIVE DECK ---
+  // --- PORTRAIT CONTROL DECK (Comfortable, Prominent Buttons) ---
   Widget _buildPortraitDeck(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final hasPressedNotes = controller.pressedMidiNotes.isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Top Header Row: Brand + Octave Stepper
+          // 1. Header: Brand + Large Octave Stepper
           Row(
             children: [
-              // Logo
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.piano, size: 20, color: colorScheme.primary),
+                child: Icon(Icons.piano, size: 24, color: colorScheme.primary),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'SimpleKeys',
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
+                      letterSpacing: -0.5,
                       color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
-                    'Couch Piano',
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    'Minimal Piano',
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                 ],
               ),
               const Spacer(),
 
-              // Octave Stepper Pill
+              // Prominent Octave Stepper Pill (Height 46dp, generous tap area)
               Container(
+                height: 46,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(23),
+                  border: Border.all(color: colorScheme.outlineVariant, width: 1.2),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove, size: 18),
-                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.remove, size: 22),
+                      tooltip: 'Octave Down',
                       onPressed: controller.baseOctave > 2 ? controller.shiftOctaveDown : null,
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
-                        'C${controller.baseOctave}',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        'C${controller.baseOctave} – C${controller.baseOctave + controller.octaveSpan}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
                           color: colorScheme.primary,
                         ),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add, size: 18),
-                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.add, size: 22),
+                      tooltip: 'Octave Up',
                       onPressed: controller.baseOctave < 5 ? controller.shiftOctaveUp : null,
                     ),
                   ],
@@ -104,163 +105,143 @@ class TopBar extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // 2. Expressive Active Chord / Harmony Card
+          // 2. Prominent Harmony & Active Chord Display
           AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
               color: hasPressedNotes
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.35)
+                  ? colorScheme.primaryContainer.withValues(alpha: 0.4)
                   : colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: hasPressedNotes
-                    ? colorScheme.primary.withValues(alpha: 0.5)
+                    ? colorScheme.primary.withValues(alpha: 0.6)
                     : colorScheme.outlineVariant,
                 width: hasPressedNotes ? 1.5 : 1,
               ),
-              boxShadow: hasPressedNotes
-                  ? [
-                      BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.2),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
             ),
             child: Row(
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  width: 8,
-                  height: 8,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: hasPressedNotes ? colorScheme.primary : colorScheme.outlineVariant,
+                    color: hasPressedNotes ? colorScheme.primary : colorScheme.outline,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     controller.activeChord,
                     style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                      color: hasPressedNotes
-                          ? colorScheme.onSurface
-                          : colorScheme.onSurfaceVariant,
+                      color: hasPressedNotes ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
                 if (controller.isMagicScale)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, size: 12, color: colorScheme.secondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          'PENTATONIC',
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                            color: colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'PENTATONIC',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: colorScheme.onSecondaryContainer,
+                      ),
                     ),
                   ),
               ],
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // 3. Official Material 3 SegmentedButton for Presets
-          SegmentedButton<SoundBankType>(
-            segments: const [
-              ButtonSegment(
-                value: SoundBankType.feltPiano,
-                label: Text('Felt'),
-                icon: Icon(Icons.piano),
-              ),
-              ButtonSegment(
-                value: SoundBankType.musicBox,
-                label: Text('Music Box'),
-                icon: Icon(Icons.notifications_active),
-              ),
-              ButtonSegment(
-                value: SoundBankType.dreamPad,
-                label: Text('Pad'),
-                icon: Icon(Icons.cloud),
-              ),
-            ],
-            selected: {controller.soundPreset},
-            onSelectionChanged: (newSelection) {
-              controller.setSoundPreset(newSelection.first);
-            },
+          // 3. Full-Sized SegmentedButton for Sound Presets (Height 48dp)
+          SizedBox(
+            height: 48,
+            child: SegmentedButton<SoundBankType>(
+              segments: const [
+                ButtonSegment(
+                  value: SoundBankType.feltPiano,
+                  label: Text('Felt Piano', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                  icon: Icon(Icons.piano, size: 20),
+                ),
+                ButtonSegment(
+                  value: SoundBankType.musicBox,
+                  label: Text('Music Box', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                  icon: Icon(Icons.notifications_active, size: 20),
+                ),
+                ButtonSegment(
+                  value: SoundBankType.dreamPad,
+                  label: Text('Dream Pad', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                  icon: Icon(Icons.cloud, size: 20),
+                ),
+              ],
+              selected: {controller.soundPreset},
+              onSelectionChanged: (newSelection) {
+                controller.setSoundPreset(newSelection.first);
+              },
+            ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // 4. Expressive FilterChips & Key Span Stepper Row
+          // 4. Large Filter Chips Row (Magic Scale & Sustain)
           Row(
             children: [
-              // Magic Scale Chip
-              FilterChip(
-                avatar: Icon(
-                  Icons.auto_awesome,
-                  size: 15,
-                  color: controller.isMagicScale
-                      ? colorScheme.onSecondaryContainer
-                      : colorScheme.onSurfaceVariant,
+              Expanded(
+                child: FilterChip(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  avatar: Icon(
+                    Icons.auto_awesome,
+                    size: 18,
+                    color: controller.isMagicScale
+                        ? colorScheme.onSecondaryContainer
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                  label: const Center(
+                    child: Text('Magic Scale', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                  ),
+                  selected: controller.isMagicScale,
+                  selectedColor: colorScheme.secondaryContainer,
+                  onSelected: (_) => controller.toggleMagicScale(),
                 ),
-                label: const Text('Magic Scale'),
-                selected: controller.isMagicScale,
-                selectedColor: colorScheme.secondaryContainer,
-                onSelected: (_) => controller.toggleMagicScale(),
               ),
 
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
 
-              // Sustain Pedal Chip
-              FilterChip(
-                avatar: Icon(
-                  controller.isSustainEnabled ? Icons.waves : Icons.graphic_eq,
-                  size: 15,
-                  color: controller.isSustainEnabled
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSurfaceVariant,
+              Expanded(
+                child: FilterChip(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  avatar: Icon(
+                    controller.isSustainEnabled ? Icons.waves : Icons.graphic_eq,
+                    size: 18,
+                    color: controller.isSustainEnabled
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                  label: Center(
+                    child: Text(
+                      controller.isSustainEnabled ? 'Sustain On' : 'Damper (Staccato)',
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  selected: controller.isSustainEnabled,
+                  selectedColor: colorScheme.primaryContainer,
+                  onSelected: (_) => controller.toggleSustain(),
                 ),
-                label: Text(controller.isSustainEnabled ? 'Sustain' : 'Damper'),
-                selected: controller.isSustainEnabled,
-                selectedColor: colorScheme.primaryContainer,
-                onSelected: (_) => controller.toggleSustain(),
-              ),
-
-              const Spacer(),
-
-              // Octave Span Toggle (1 Octave vs 2 Octaves)
-              SegmentedButton<int>(
-                showSelectedIcon: false,
-                style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                segments: const [
-                  ButtonSegment(value: 1, label: Text('1 Oct')),
-                  ButtonSegment(value: 2, label: Text('2 Oct')),
-                ],
-                selected: {controller.octaveSpan},
-                onSelectionChanged: (newVal) {
-                  controller.setOctaveSpan(newVal.first);
-                },
               ),
             ],
           ),
@@ -269,15 +250,15 @@ class TopBar extends StatelessWidget {
     );
   }
 
-  // --- LANDSCAPE MATERIAL 3 EXPRESSIVE BAR ---
+  // --- LANDSCAPE BAR ---
   Widget _buildLandscapeBar(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final hasPressedNotes = controller.pressedMidiNotes.isNotEmpty;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(24),
@@ -285,17 +266,15 @@ class TopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Brand
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.piano, size: 20, color: colorScheme.primary),
+              Icon(Icons.piano, size: 22, color: colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 'SimpleKeys',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
                   color: colorScheme.onSurface,
                 ),
               ),
@@ -306,44 +285,42 @@ class TopBar extends StatelessWidget {
 
           // Octave Stepper
           Container(
-            height: 36,
+            height: 42,
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(21),
               border: Border.all(color: colorScheme.outlineVariant),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.remove, size: 16),
-                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.remove, size: 18),
                   onPressed: controller.baseOctave > 2 ? controller.shiftOctaveDown : null,
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
                     'C${controller.baseOctave} – C${controller.baseOctave + controller.octaveSpan}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
                       color: colorScheme.primary,
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add, size: 16),
-                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.add, size: 18),
                   onPressed: controller.baseOctave < 5 ? controller.shiftOctaveUp : null,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
 
-          // Active Chord Pill
+          // Chord Display
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: hasPressedNotes
                   ? colorScheme.primaryContainer
@@ -357,7 +334,7 @@ class TopBar extends StatelessWidget {
             ),
             child: Text(
               controller.activeChord,
-              style: theme.textTheme.labelMedium?.copyWith(
+              style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: hasPressedNotes
                     ? colorScheme.onPrimaryContainer
@@ -368,40 +345,41 @@ class TopBar extends StatelessWidget {
 
           const Spacer(),
 
-          // Preset Switcher
-          SegmentedButton<SoundBankType>(
-            style: const ButtonStyle(visualDensity: VisualDensity.compact),
-            segments: const [
-              ButtonSegment(
-                value: SoundBankType.feltPiano,
-                label: Text('Felt'),
-                icon: Icon(Icons.piano, size: 14),
-              ),
-              ButtonSegment(
-                value: SoundBankType.musicBox,
-                label: Text('Music Box'),
-                icon: Icon(Icons.notifications_active, size: 14),
-              ),
-              ButtonSegment(
-                value: SoundBankType.dreamPad,
-                label: Text('Pad'),
-                icon: Icon(Icons.cloud, size: 14),
-              ),
-            ],
-            selected: {controller.soundPreset},
-            onSelectionChanged: (newSelection) {
-              controller.setSoundPreset(newSelection.first);
-            },
+          // Sound Presets
+          SizedBox(
+            height: 42,
+            child: SegmentedButton<SoundBankType>(
+              segments: const [
+                ButtonSegment(
+                  value: SoundBankType.feltPiano,
+                  label: Text('Felt'),
+                  icon: Icon(Icons.piano, size: 16),
+                ),
+                ButtonSegment(
+                  value: SoundBankType.musicBox,
+                  label: Text('Music Box'),
+                  icon: Icon(Icons.notifications_active, size: 16),
+                ),
+                ButtonSegment(
+                  value: SoundBankType.dreamPad,
+                  label: Text('Pad'),
+                  icon: Icon(Icons.cloud, size: 16),
+                ),
+              ],
+              selected: {controller.soundPreset},
+              onSelectionChanged: (newSelection) {
+                controller.setSoundPreset(newSelection.first);
+              },
+            ),
           ),
 
           const SizedBox(width: 12),
 
           // Sustain Chip
           FilterChip(
-            visualDensity: VisualDensity.compact,
             avatar: Icon(
               controller.isSustainEnabled ? Icons.waves : Icons.graphic_eq,
-              size: 14,
+              size: 16,
             ),
             label: Text(controller.isSustainEnabled ? 'Sustain' : 'Damper'),
             selected: controller.isSustainEnabled,
@@ -412,8 +390,7 @@ class TopBar extends StatelessWidget {
 
           // Magic Scale Chip
           FilterChip(
-            visualDensity: VisualDensity.compact,
-            avatar: const Icon(Icons.auto_awesome, size: 14),
+            avatar: const Icon(Icons.auto_awesome, size: 16),
             label: const Text('Magic Scale'),
             selected: controller.isMagicScale,
             selectedColor: colorScheme.secondaryContainer,

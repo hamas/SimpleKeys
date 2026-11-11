@@ -2,9 +2,9 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 enum SoundBankType {
-  feltPiano('Felt Piano', 'Warm, soft acoustic felt hammers with rich decay'),
-  musicBox('Music Box', 'Crisp bell-like chimes with metallic shimmer'),
-  dreamPad('Dream Pad', 'Lush ambient tones with soft attack and airy release');
+  feltPiano('Felt Piano', 'Warm, soft acoustic felt hammers with rich acoustic resonance'),
+  musicBox('Music Box', 'Crisp bell-like chimes with shimmering metallic overtones'),
+  dreamPad('Dream Pad', 'Lush ambient tones with soft attack and airy sustained chorus');
 
   final String title;
   final String description;
@@ -33,34 +33,41 @@ abstract final class SoundPresets {
 
       switch (preset) {
         case SoundBankType.feltPiano:
-          // Warm percussive acoustic character:
-          // Strong fundamental, warm 2nd harmonic, gentle 3rd harmonic, natural exponential decay.
-          final double env = math.exp(-3.2 * t);
-          final double h1 = math.sin(fundamentalDelta * i);
-          final double h2 = 0.35 * math.sin(fundamentalDelta * 2 * i);
-          final double h3 = 0.12 * math.sin(fundamentalDelta * 3 * i);
-          final double h4 = 0.05 * math.sin(fundamentalDelta * 4 * i);
-          sample = (h1 + h2 + h3 + h4) * env;
+          // Intimate acoustic felt piano:
+          // 1. Dual-string unison detuning (beating frequency) for authentic acoustic life
+          final double detuneRate = fundamentalDelta * 1.0018;
+          // 2. Dual-stage natural acoustic decay: strike body + slow string resonance tail
+          final double env = 0.65 * math.exp(-3.8 * t) + 0.35 * math.exp(-1.4 * t);
+          // 3. Soft wooden hammer felt impact transient in first 12ms
+          final double hammerThump = 0.12 * math.exp(-180.0 * t) * math.sin(fundamentalDelta * 0.5 * i);
+          // 4. Warm harmonic overtone series with gentle acoustic roll-off
+          final double h1 = 0.52 * math.sin(fundamentalDelta * i) + 0.48 * math.sin(detuneRate * i);
+          final double h2 = 0.32 * math.sin(fundamentalDelta * 2.001 * i);
+          final double h3 = 0.14 * math.sin(fundamentalDelta * 3.003 * i);
+          final double h4 = 0.04 * math.sin(fundamentalDelta * 4.006 * i);
+          sample = ((h1 + h2 + h3 + h4) * env) + hammerThump;
 
         case SoundBankType.musicBox:
-          // Bell / Celeste character:
-          // Crisp instantaneous attack, prominent inharmonic overtone (2.76x) and shimmering decay.
-          final double env = math.exp(-2.6 * t);
+          // Crystalline musical box / celeste:
+          // Crisp instantaneous tine attack with inharmonic bell overtones (2.756x and 5.404x)
+          final double env = math.exp(-2.2 * t);
           final double h1 = math.sin(fundamentalDelta * i);
-          final double h2 = 0.45 * math.sin(fundamentalDelta * 2.76 * i);
-          final double h3 = 0.20 * math.sin(fundamentalDelta * 5.4 * i);
-          sample = (h1 + h2 + h3) * env;
+          final double h2 = 0.48 * math.sin(fundamentalDelta * 2.756 * i);
+          final double h3 = 0.22 * math.sin(fundamentalDelta * 5.404 * i);
+          final double h4 = 0.08 * math.sin(fundamentalDelta * 8.933 * i);
+          sample = (h1 + h2 + h3 + h4) * env;
 
         case SoundBankType.dreamPad:
           // Ethereal ambient pad:
-          // Soft attack envelope (first 40ms fade-in), slight detuning chorus, long lush tail.
-          final double attack = (t < 0.04) ? (t / 0.04) : 1.0;
-          final double decay = math.exp(-1.4 * t);
+          // Soft attack envelope (first 45ms fade-in), multi-oscillator detuned chorus, long lush tail
+          final double attack = (t < 0.045) ? (t / 0.045) : 1.0;
+          final double decay = math.exp(-1.1 * t);
           final double env = attack * decay;
-          final double h1 = math.sin(fundamentalDelta * i);
-          final double detune = math.sin(fundamentalDelta * 1.004 * i);
-          final double h2 = 0.25 * math.sin(fundamentalDelta * 2 * i);
-          sample = (h1 * 0.5 + detune * 0.5 + h2) * env;
+          final double osc1 = math.sin(fundamentalDelta * i);
+          final double osc2 = math.sin(fundamentalDelta * 1.005 * i);
+          final double osc3 = math.sin(fundamentalDelta * 0.995 * i);
+          final double octave = 0.30 * math.sin(fundamentalDelta * 2.0 * i);
+          sample = (osc1 * 0.4 + osc2 * 0.3 + osc3 * 0.3 + octave) * env;
       }
 
       // Soft-clip saturation to prevent digital distortion
@@ -128,4 +135,3 @@ abstract final class SoundPresets {
     return wavBytes;
   }
 }
-

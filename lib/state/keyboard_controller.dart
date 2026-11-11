@@ -46,7 +46,7 @@ class KeyboardController extends ChangeNotifier {
   int _baseOctave = 3;
   int get baseOctave => _baseOctave;
 
-  int _octaveSpan = 1; // 1 = Couch thumb mode (8 white keys), 2 = Wide mode (15 white keys)
+  int _octaveSpan = 2; // Default 2 octaves (15 white keys: C3 to C5)
   int get octaveSpan => _octaveSpan;
 
   SoundBankType _soundPreset = SoundBankType.feltPiano;

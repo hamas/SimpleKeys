@@ -66,15 +66,15 @@ void main() {
   group('KeyboardLayout Zero-Allocation Cache', () {
     test('Layout precomputes immutable white and black note lists and preceding indices', () {
       final controller = KeyboardController();
-      // Default is 1 octave (portrait friendly)
-      expect(controller.layout.whiteNotes.length, 8);
-      expect(controller.layout.blackNotes.length, 5);
-
-      // Switch to 2 octaves (wide landscape)
-      controller.setOctaveSpan(2);
+      // Default is 2 octaves (15 white keys, 10 black keys)
       expect(controller.layout.whiteNotes.length, 15);
       expect(controller.layout.blackNotes.length, 10);
       expect(controller.layout.blackToPrecedingWhiteIndex.length, 10);
+
+      // Can switch to 1 octave
+      controller.setOctaveSpan(1);
+      expect(controller.layout.whiteNotes.length, 8);
+      expect(controller.layout.blackNotes.length, 5);
 
       // Verify that C#3 (first black key) maps to C3 (white key index 0)
       final cSharp3 = controller.layout.blackNotes.first;

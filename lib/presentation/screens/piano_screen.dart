@@ -4,7 +4,7 @@ import '../../state/keyboard_controller.dart';
 import '../widgets/piano_keyboard.dart';
 import '../widgets/top_bar.dart';
 
-/// Material 3 Expressive responsive piano screen supporting portrait and landscape orientations.
+/// Responsive piano screen with visible system bars and balanced component sizing.
 class PianoScreen extends StatefulWidget {
   const PianoScreen({super.key});
 
@@ -14,7 +14,6 @@ class PianoScreen extends StatefulWidget {
 
 class _PianoScreenState extends State<PianoScreen> {
   late final KeyboardController _controller;
-  Orientation? _lastOrientation;
 
   @override
   void initState() {
@@ -34,17 +33,11 @@ class _PianoScreenState extends State<PianoScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: true,
+        bottom: true,
         child: OrientationBuilder(
           builder: (context, orientation) {
             final isPortrait = orientation == Orientation.portrait;
-
-            // Auto-adjust default octave span when orientation changes
-            if (_lastOrientation != orientation) {
-              _lastOrientation = orientation;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _controller.setOctaveSpan(isPortrait ? 1 : 2);
-              });
-            }
 
             return ListenableBuilder(
               listenable: _controller,
@@ -53,14 +46,16 @@ class _PianoScreenState extends State<PianoScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Prominent, comfortable top control deck
                       TopBar(controller: _controller, isPortrait: true),
-                      const SizedBox(height: 8),
-                      // Generous keyboard touch area in portrait
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                          child: PianoKeyboard(controller: _controller),
-                        ),
+
+                      const Spacer(),
+
+                      // Proportional, balanced piano keyboard height in portrait
+                      Container(
+                        height: 250,
+                        margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                        child: PianoKeyboard(controller: _controller),
                       ),
                     ],
                   );
