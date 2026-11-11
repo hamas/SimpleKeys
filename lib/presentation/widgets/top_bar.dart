@@ -3,7 +3,8 @@ import '../../core/audio/sound_presets.dart';
 import '../../core/theme/app_colors.dart';
 import '../../state/keyboard_controller.dart';
 
-/// Top control bar housing octave controls, sound bank preset pill switcher, and magic-scale toggle.
+/// Material 3 Expressive top control bar housing octave stepper, fluid preset switcher,
+/// sustain pedal toggle, and radiant magic-scale toggle.
 class TopBar extends StatelessWidget {
   final KeyboardController controller;
 
@@ -15,16 +16,19 @@ class TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.surfaceBorder,
-            width: 1,
+      margin: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.surfaceBorder, width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
           ),
-        ),
+        ],
       ),
       child: Row(
         children: [
@@ -37,85 +41,104 @@ class TopBar extends StatelessWidget {
               Text(
                 'SimpleKeys',
                 style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
                   color: AppColors.textPrimary,
                 ),
               ),
             ],
           ),
 
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
 
-          // Octave Selector
-          _buildOctaveControls(),
+          // Expressive Octave Stepper Pill
+          _buildOctaveStepper(),
 
           const Spacer(),
 
-          // Sound Preset Switcher Pills
+          // Fluid Segmented Sound Preset Switcher
           _buildPresetSwitcher(),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: 10),
 
-          // Magic Scale Toggle Button
+          // Sustain Pedal Toggle Pill
+          _buildSustainToggle(),
+
+          const SizedBox(width: 10),
+
+          // Radiant Magic Scale Toggle Pill
           _buildMagicScaleToggle(),
         ],
       ),
     );
   }
 
-  Widget _buildOctaveControls() {
+  Widget _buildOctaveStepper() {
+    final canShiftDown = controller.baseOctave > 2;
+    final canShiftUp = controller.baseOctave < 5;
+
     return Container(
-      height: 32,
+      height: 36,
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBorder),
+        color: AppColors.surfaceDim,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.surfaceBorder, width: 0.75),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildIconButton(
+          _buildStepperButton(
             icon: Icons.remove,
-            enabled: controller.baseOctave > 2,
-            onPressed: controller.shiftOctaveDown,
+            enabled: canShiftDown,
+            onTap: controller.shiftOctaveDown,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text(
-              'C${controller.baseOctave} – C${controller.baseOctave + 2}',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.unfold_more, size: 13, color: AppColors.accentAmber),
+                const SizedBox(width: 4),
+                Text(
+                  'C${controller.baseOctave} – C${controller.baseOctave + 2}',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
-          _buildIconButton(
+          _buildStepperButton(
             icon: Icons.add,
-            enabled: controller.baseOctave < 5,
-            onPressed: controller.shiftOctaveUp,
+            enabled: canShiftUp,
+            onTap: controller.shiftOctaveUp,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildIconButton({
+  Widget _buildStepperButton({
     required IconData icon,
     required bool enabled,
-    required VoidCallback onPressed,
+    required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: enabled ? onPressed : null,
-      borderRadius: BorderRadius.circular(7),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Icon(
-          icon,
-          size: 16,
-          color: enabled ? AppColors.textPrimary : AppColors.textMuted,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Icon(
+            icon,
+            size: 15,
+            color: enabled ? AppColors.textPrimary : AppColors.textMuted.withValues(alpha: 0.4),
+          ),
         ),
       ),
     );
@@ -123,41 +146,119 @@ class TopBar extends StatelessWidget {
 
   Widget _buildPresetSwitcher() {
     return Container(
-      height: 32,
-      padding: const EdgeInsets.all(2),
+      height: 36,
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBorder),
+        color: AppColors.surfaceDim,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.surfaceBorder, width: 0.75),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: SoundBankType.values.map((preset) {
           final isSelected = controller.soundPreset == preset;
+          final iconData = switch (preset) {
+            SoundBankType.feltPiano => Icons.piano,
+            SoundBankType.musicBox => Icons.notifications_active,
+            SoundBankType.dreamPad => Icons.cloud,
+          };
+
           return GestureDetector(
             onTap: () => controller.setSoundPreset(preset),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOutCubic,
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.surfaceHighlight : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
+                color: isSelected
+                    ? AppColors.surfaceHighlight
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(15),
                 border: isSelected
-                    ? Border.all(color: AppColors.accentAmber.withValues(alpha: 0.6))
+                    ? Border.all(color: AppColors.accentAmber.withValues(alpha: 0.75), width: 1)
+                    : null,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.accentAmber.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
                     : null,
               ),
-              child: Text(
-                preset.title,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    iconData,
+                    size: 14,
+                    color: isSelected ? AppColors.accentAmber : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    preset.title,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSustainToggle() {
+    final isSustain = controller.isSustainEnabled;
+
+    return GestureDetector(
+      onTap: controller.toggleSustain,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: isSustain
+              ? AppColors.accentAmber.withValues(alpha: 0.15)
+              : AppColors.surfaceDim,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSustain ? AppColors.accentAmber : AppColors.surfaceBorder,
+            width: isSustain ? 1.25 : 0.75,
+          ),
+          boxShadow: isSustain
+              ? [
+                  BoxShadow(
+                    color: AppColors.accentAmber.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSustain ? Icons.waves : Icons.graphic_eq,
+              size: 14,
+              color: isSustain ? AppColors.accentAmber : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              isSustain ? 'Sustain' : 'Damper',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSustain ? FontWeight.w700 : FontWeight.w500,
+                color: isSustain ? AppColors.accentAmber : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -168,23 +269,28 @@ class TopBar extends StatelessWidget {
     return GestureDetector(
       onTap: controller.toggleMagicScale,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutBack,
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 11),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.accentCyan.withValues(alpha: 0.15) : AppColors.background,
-          borderRadius: BorderRadius.circular(8),
+          color: isActive
+              ? AppColors.accentCyan.withValues(alpha: 0.18)
+              : AppColors.surfaceDim,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isActive ? AppColors.accentCyan : AppColors.surfaceBorder,
-            width: isActive ? 1.5 : 1,
+            width: isActive ? 1.5 : 0.75,
           ),
-          boxShadow: [
-            if (isActive)
-              BoxShadow(
-                color: AppColors.accentCyan.withValues(alpha: 0.2),
-                blurRadius: 8,
-              ),
-          ],
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: AppColors.accentCyan.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -198,8 +304,8 @@ class TopBar extends StatelessWidget {
             Text(
               'Magic Scale',
               style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                 color: isActive ? AppColors.accentCyan : AppColors.textSecondary,
               ),
             ),
@@ -209,4 +315,3 @@ class TopBar extends StatelessWidget {
     );
   }
 }
-

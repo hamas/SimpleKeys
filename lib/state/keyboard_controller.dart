@@ -5,6 +5,34 @@ import '../core/audio/sound_presets.dart';
 import '../core/constants/piano_notes.dart';
 import '../models/key_note.dart';
 
+/// Precomputed immutable keyboard layout metadata for zero-allocation hit testing and rendering.
+@immutable
+class KeyboardLayout {
+  final List<KeyNote> allNotes;
+  final List<KeyNote> whiteNotes;
+  final List<KeyNote> blackNotes;
+  final Map<KeyNote, int> blackToPrecedingWhiteIndex;
+
+  KeyboardLayout({required this.allNotes})
+      : whiteNotes = allNotes.where((n) => !n.isAccidental).toList(growable: false),
+        blackNotes = allNotes.where((n) => n.isAccidental).toList(growable: false),
+        blackToPrecedingWhiteIndex = _buildPrecedingMap(allNotes);
+
+  static Map<KeyNote, int> _buildPrecedingMap(List<KeyNote> notes) {
+    final Map<KeyNote, int> map = {};
+    for (int i = 0; i < notes.length; i++) {
+      final note = notes[i];
+      if (note.isAccidental && i > 0) {
+        final prev = notes[i - 1];
+        if (!prev.isAccidental && prev.whiteKeyIndex != null) {
+          map[note] = prev.whiteKeyIndex!;
+        }
+      }
+    }
+    return Map.unmodifiable(map);
+  }
+}
+
 /// Lightweight controller managing keyboard state, active octaves, presets, and multi-touch pointer routing.
 class KeyboardController extends ChangeNotifier {
   final AudioEngine _audioEngine;
@@ -23,8 +51,12 @@ class KeyboardController extends ChangeNotifier {
   bool _isMagicScale = false;
   bool get isMagicScale => _isMagicScale;
 
-  List<KeyNote> _notes = const [];
-  List<KeyNote> get notes => _notes;
+  bool _isSustainEnabled = true;
+  bool get isSustainEnabled => _isSustainEnabled;
+
+  late KeyboardLayout _layout;
+  KeyboardLayout get layout => _layout;
+  List<KeyNote> get notes => _layout.allNotes;
 
   /// Currently depressed MIDI notes (for visual glow / depressed state).
   final Set<int> _pressedMidiNotes = {};
@@ -45,16 +77,17 @@ class KeyboardController extends ChangeNotifier {
   }
 
   void _refreshNotes() {
-    _notes = PianoNotes.generateNotes(
+    final generated = PianoNotes.generateNotes(
       startOctave: _baseOctave,
       octaveCount: 2,
       includeEndingRoot: true, // e.g. C3 through C5 (25 keys: 15 white, 10 black)
     );
+    _layout = KeyboardLayout(allNotes: generated);
   }
 
   Future<void> _reloadSoundBank() async {
     await _audioEngine.loadSoundBank(
-      notes: _notes,
+      notes: _layout.allNotes,
       preset: _soundPreset,
     );
   }
@@ -92,6 +125,13 @@ class KeyboardController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Toggles sustain pedal mode (sustain vs staccato damping).
+  void toggleSustain() {
+    _isSustainEnabled = !_isSustainEnabled;
+    HapticFeedback.selectionClick();
+    notifyListeners();
+  }
+
   /// Check whether a note is playable in the current scale mode.
   bool isNotePlayable(KeyNote note) {
     if (!_isMagicScale) return true;
@@ -99,24 +139,27 @@ class KeyboardController extends ChangeNotifier {
   }
 
   /// Called when a pointer hits a key.
-  void handlePointerDown(int pointerId, KeyNote note) {
+  void handlePointerDown(int pointerId, KeyNote note, {double velocity = 1.0}) {
     if (!isNotePlayable(note)) return;
 
     _pointerToMidi[pointerId] = note.midiNumber;
     _pressedMidiNotes.add(note.midiNumber);
 
     HapticFeedback.selectionClick();
-    _audioEngine.playNote(note.midiNumber);
+    _audioEngine.playNote(note.midiNumber, volume: velocity);
 
     notifyListeners();
   }
 
   /// Called when a pointer drags across the keyboard (glissando/slide).
-  void handlePointerMove(int pointerId, KeyNote? newNote) {
+  void handlePointerMove(int pointerId, KeyNote? newNote, {double velocity = 1.0}) {
     final currentMidi = _pointerToMidi[pointerId];
 
     if (newNote == null || !isNotePlayable(newNote)) {
       if (currentMidi != null) {
+        if (!_isSustainEnabled) {
+          _audioEngine.stopNote(currentMidi);
+        }
         _pointerToMidi.remove(pointerId);
         _recalculatePressedNotes();
         notifyListeners();
@@ -125,11 +168,15 @@ class KeyboardController extends ChangeNotifier {
     }
 
     if (currentMidi != newNote.midiNumber) {
+      if (currentMidi != null && !_isSustainEnabled) {
+        _audioEngine.stopNote(currentMidi);
+      }
+
       _pointerToMidi[pointerId] = newNote.midiNumber;
       _pressedMidiNotes.add(newNote.midiNumber);
 
       HapticFeedback.selectionClick();
-      _audioEngine.playNote(newNote.midiNumber);
+      _audioEngine.playNote(newNote.midiNumber, volume: velocity);
 
       _recalculatePressedNotes();
       notifyListeners();
@@ -138,8 +185,11 @@ class KeyboardController extends ChangeNotifier {
 
   /// Called when a pointer is lifted or canceled.
   void handlePointerUp(int pointerId) {
-    if (_pointerToMidi.containsKey(pointerId)) {
-      _pointerToMidi.remove(pointerId);
+    final releasedMidi = _pointerToMidi.remove(pointerId);
+    if (releasedMidi != null) {
+      if (!_isSustainEnabled) {
+        _audioEngine.stopNote(releasedMidi);
+      }
       _recalculatePressedNotes();
       notifyListeners();
     }
@@ -156,4 +206,3 @@ class KeyboardController extends ChangeNotifier {
     super.dispose();
   }
 }
-

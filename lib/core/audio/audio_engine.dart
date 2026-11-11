@@ -15,7 +15,9 @@ class AudioEngine {
   SoundBankType get currentPreset => _currentPreset;
 
   final Map<int, AudioSource> _noteSources = {};
+  final Map<int, List<SoundHandle>> _activeHandles = {};
   bool _isLoadingBank = false;
+  int _activeLoadGeneration = 0;
 
   /// Initializes SoLoud low-latency audio stream with Android AAudio configuration.
   Future<void> initialize() async {
@@ -41,6 +43,7 @@ class AudioEngine {
   }
 
   /// Pre-loads synthesized audio samples for [notes] directly into memory.
+  /// Uses generation tracking to prevent race conditions on rapid preset/octave switches.
   Future<void> loadSoundBank({
     required List<KeyNote> notes,
     SoundBankType preset = SoundBankType.feltPiano,
@@ -50,6 +53,7 @@ class AudioEngine {
       if (!_isInitialized) return;
     }
 
+    final generation = ++_activeLoadGeneration;
     _isLoadingBank = true;
     _currentPreset = preset;
 
@@ -57,7 +61,14 @@ class AudioEngine {
     await _disposeCurrentSources();
 
     try {
+      final Map<int, AudioSource> loaded = {};
       for (final note in notes) {
+        if (generation != _activeLoadGeneration) {
+          // Obsolete generation: user triggered another change
+          dev.log('AudioEngine: Aborting load generation $generation.');
+          return;
+        }
+
         final wavBytes = SoundPresets.synthesizeWav(
           frequency: note.frequency,
           preset: preset,
@@ -70,13 +81,19 @@ class AudioEngine {
           mode: LoadMode.memory,
         );
 
-        _noteSources[note.midiNumber] = audioSource;
+        loaded[note.midiNumber] = audioSource;
       }
-      dev.log('AudioEngine: Loaded ${_noteSources.length} notes for preset ${preset.title}.');
+
+      if (generation == _activeLoadGeneration) {
+        _noteSources.addAll(loaded);
+        dev.log('AudioEngine: Loaded ${_noteSources.length} notes for preset ${preset.title}.');
+      }
     } catch (e, st) {
       dev.log('AudioEngine: Failed to load sound bank: $e\n$st');
     } finally {
-      _isLoadingBank = false;
+      if (generation == _activeLoadGeneration) {
+        _isLoadingBank = false;
+      }
     }
   }
 
@@ -90,28 +107,38 @@ class AudioEngine {
     if (source == null) return null;
 
     try {
-      return SoLoud.instance.play(
+      final handle = SoLoud.instance.play(
         source,
         volume: volume.clamp(0.0, 1.0),
       );
+
+      _activeHandles.putIfAbsent(midiNumber, () => []).add(handle);
+      return handle;
     } catch (e) {
       dev.log('AudioEngine: Note trigger error for MIDI $midiNumber: $e');
       return null;
     }
   }
 
-  /// Optionally stops or fades a note when a finger is lifted.
-  void stopNote(SoundHandle? handle, {Duration fadeTime = const Duration(milliseconds: 180)}) {
-    if (!_isInitialized || handle == null) return;
-    try {
-      SoLoud.instance.fadeVolume(handle, 0.0, fadeTime);
-      SoLoud.instance.scheduleStop(handle, fadeTime);
-    } catch (_) {
-      // Handle may have already finished playing naturally
+  /// Gently fades and stops any active voices for [midiNumber] (damper pedal release).
+  void stopNote(int midiNumber, {Duration fadeTime = const Duration(milliseconds: 140)}) {
+    if (!_isInitialized) return;
+
+    final handles = _activeHandles.remove(midiNumber);
+    if (handles == null || handles.isEmpty) return;
+
+    for (final handle in handles) {
+      try {
+        SoLoud.instance.fadeVolume(handle, 0.0, fadeTime);
+        SoLoud.instance.scheduleStop(handle, fadeTime);
+      } catch (_) {
+        // Voice may have completed naturally
+      }
     }
   }
 
   Future<void> _disposeCurrentSources() async {
+    _activeHandles.clear();
     for (final source in _noteSources.values) {
       try {
         await SoLoud.instance.disposeSource(source);

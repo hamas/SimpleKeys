@@ -39,8 +39,24 @@ void main() {
     });
   });
 
+  group('KeyboardLayout Zero-Allocation Cache', () {
+    test('Layout precomputes immutable white and black note lists and preceding indices', () {
+      final controller = KeyboardController();
+      final layout = controller.layout;
+
+      expect(layout.whiteNotes.length, 15);
+      expect(layout.blackNotes.length, 10);
+      expect(layout.blackToPrecedingWhiteIndex.length, 10);
+
+      // Verify that C#3 (first black key) maps to C3 (white key index 0)
+      final cSharp3 = layout.blackNotes.first;
+      expect(cSharp3.name, 'C#');
+      expect(layout.blackToPrecedingWhiteIndex[cSharp3], 0);
+    });
+  });
+
   group('KeyboardController State & Multi-Touch', () {
-    test('Octave shift changes visible notes', () {
+    test('Octave shift changes visible notes and updates layout', () {
       final controller = KeyboardController();
       expect(controller.baseOctave, 3);
       expect(controller.notes.first.label, 'C3');
@@ -48,23 +64,24 @@ void main() {
       controller.shiftOctaveUp();
       expect(controller.baseOctave, 4);
       expect(controller.notes.first.label, 'C4');
+      expect(controller.layout.whiteNotes.first.label, 'C4');
 
       controller.shiftOctaveDown();
       expect(controller.baseOctave, 3);
       expect(controller.notes.first.label, 'C3');
     });
 
-    test('Pointer down, move, and up tracks pressed MIDI notes correctly', () {
+    test('Pointer down, move, and up tracks pressed MIDI notes with velocity', () {
       final controller = KeyboardController();
       final note1 = controller.notes.first; // C3
       final note2 = controller.notes[2];    // D3
 
-      // Pointer 1 strikes C3
-      controller.handlePointerDown(1, note1);
+      // Pointer 1 strikes C3 with velocity
+      controller.handlePointerDown(1, note1, velocity: 0.85);
       expect(controller.pressedMidiNotes.contains(note1.midiNumber), isTrue);
 
       // Pointer 2 strikes D3 simultaneously (multi-touch)
-      controller.handlePointerDown(2, note2);
+      controller.handlePointerDown(2, note2, velocity: 0.95);
       expect(controller.pressedMidiNotes.contains(note1.midiNumber), isTrue);
       expect(controller.pressedMidiNotes.contains(note2.midiNumber), isTrue);
 
@@ -76,6 +93,17 @@ void main() {
       // Pointer 2 lifts
       controller.handlePointerUp(2);
       expect(controller.pressedMidiNotes.isEmpty, isTrue);
+    });
+
+    test('Sustain pedal toggle updates mode', () {
+      final controller = KeyboardController();
+      expect(controller.isSustainEnabled, isTrue);
+
+      controller.toggleSustain();
+      expect(controller.isSustainEnabled, isFalse);
+
+      controller.toggleSustain();
+      expect(controller.isSustainEnabled, isTrue);
     });
 
     test('Magic Scale disables discordant notes from being struck', () {

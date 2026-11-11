@@ -4,7 +4,8 @@ import '../../state/keyboard_controller.dart';
 import 'black_key.dart';
 import 'white_key.dart';
 
-/// Container that renders piano keys and handles low-latency multi-touch pointer events.
+/// Container that renders piano keys and handles low-latency multi-touch pointer events
+/// with zero-allocation geometry caching and dynamic velocity estimation.
 class PianoKeyboard extends StatelessWidget {
   final KeyboardController controller;
 
@@ -15,9 +16,10 @@ class PianoKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allNotes = controller.notes;
-    final whiteNotes = allNotes.where((n) => !n.isAccidental).toList();
-    final blackNotes = allNotes.where((n) => n.isAccidental).toList();
+    final layout = controller.layout;
+    final whiteNotes = layout.whiteNotes;
+    final blackNotes = layout.blackNotes;
+    final blackPrecedingMap = layout.blackToPrecedingWhiteIndex;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -32,20 +34,15 @@ class PianoKeyboard extends StatelessWidget {
         final blackKeyWidth = whiteKeyWidth * 0.62;
         final blackKeyHeight = totalHeight * 0.60;
 
-        // Map each black key to its preceding white key index
-        final Map<KeyNote, double> blackKeyLeftPositions = {};
-        for (final black in blackNotes) {
-          final indexInAll = allNotes.indexOf(black);
-          if (indexInAll > 0) {
-            final prevNote = allNotes[indexInAll - 1];
-            if (!prevNote.isAccidental && prevNote.whiteKeyIndex != null) {
-              final centerBoundary = (prevNote.whiteKeyIndex! + 1) * whiteKeyWidth;
-              blackKeyLeftPositions[black] = centerBoundary - (blackKeyWidth / 2);
-            }
-          }
+        // Calculate dynamic velocity from touch coordinate and pressure
+        double resolveVelocity(double localY, double pressure) {
+          final normalizedY = (localY / totalHeight).clamp(0.0, 1.0);
+          final positionFactor = 0.65 + (normalizedY * 0.35);
+          final pressureFactor = (pressure > 0.0 && pressure <= 1.0) ? pressure : 1.0;
+          return (positionFactor * pressureFactor).clamp(0.5, 1.0);
         }
 
-        // Resolves coordinate (x, y) to a specific KeyNote with black-key-first precedence
+        // Resolves coordinate (x, y) with zero allocations
         KeyNote? hitTestKey(Offset pos) {
           final x = pos.dx;
           final y = pos.dy;
@@ -54,12 +51,17 @@ class PianoKeyboard extends StatelessWidget {
             return null;
           }
 
-          // 1. Black key hit test (top portion of keyboard)
+          // 1. Black key hit test (top 60% of keyboard)
           if (y <= blackKeyHeight) {
-            for (final entry in blackKeyLeftPositions.entries) {
-              final blackLeft = entry.value;
-              if (x >= blackLeft && x <= blackLeft + blackKeyWidth) {
-                return entry.key;
+            for (int i = 0; i < blackNotes.length; i++) {
+              final black = blackNotes[i];
+              final prevWhiteIdx = blackPrecedingMap[black];
+              if (prevWhiteIdx != null) {
+                final center = (prevWhiteIdx + 1) * whiteKeyWidth;
+                final left = center - (blackKeyWidth / 2);
+                if (x >= left && x <= left + blackKeyWidth) {
+                  return black;
+                }
               }
             }
           }
@@ -74,12 +76,14 @@ class PianoKeyboard extends StatelessWidget {
           onPointerDown: (event) {
             final hitKey = hitTestKey(event.localPosition);
             if (hitKey != null) {
-              controller.handlePointerDown(event.pointer, hitKey);
+              final velocity = resolveVelocity(event.localPosition.dy, event.pressure);
+              controller.handlePointerDown(event.pointer, hitKey, velocity: velocity);
             }
           },
           onPointerMove: (event) {
             final hitKey = hitTestKey(event.localPosition);
-            controller.handlePointerMove(event.pointer, hitKey);
+            final velocity = resolveVelocity(event.localPosition.dy, event.pressure);
+            controller.handlePointerMove(event.pointer, hitKey, velocity: velocity);
           },
           onPointerUp: (event) {
             controller.handlePointerUp(event.pointer);
@@ -109,9 +113,11 @@ class PianoKeyboard extends StatelessWidget {
 
               // Black Keys Layer (Overlay with precise absolute bounds)
               ...blackNotes.map((note) {
-                final left = blackKeyLeftPositions[note];
-                if (left == null) return const SizedBox.shrink();
+                final prevWhiteIdx = blackPrecedingMap[note];
+                if (prevWhiteIdx == null) return const SizedBox.shrink();
 
+                final center = (prevWhiteIdx + 1) * whiteKeyWidth;
+                final left = center - (blackKeyWidth / 2);
                 final isPressed = controller.pressedMidiNotes.contains(note.midiNumber);
                 final isPlayable = controller.isNotePlayable(note);
 
@@ -136,4 +142,3 @@ class PianoKeyboard extends StatelessWidget {
     );
   }
 }
-
