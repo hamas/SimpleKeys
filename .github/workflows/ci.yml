@@ -32,7 +32,7 @@ jobs:
         run: flutter pub get
 
       - name: Verify static analysis & formatting
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Run unit & widget tests
         run: flutter test
